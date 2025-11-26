@@ -1,0 +1,105 @@
+import json
+import geopandas as gpd
+import radian
+import shapely
+import numpy as np
+import pandas as pd
+import osmnx as ox
+
+from radian import points_uniform, gaussian_moving_centre, gaussian_centre, get_roads_from_poly, road_distribution
+
+from shapely import Polygon
+from flask import Flask, request, jsonify, render_template
+from flask import send_file, send_from_directory
+
+app = Flask(__name__)
+@app.route('/', methods=['GET','POST'])
+def root():
+    return render_template('index.html')
+
+
+@app.route('/test', methods=['GET', 'POST'])
+def process():
+    poly = json.loads(request.data)
+    gdf = gpd.GeoDataFrame.from_features(poly['data']['features'])
+    
+    num_points = poly['params']['num_points']
+    vor_number = poly['params']['vor_number']
+    gen_type = poly['params']['gen_type']
+    points_split = poly['params']['points_split']
+    centroid = shapely.Point(poly['centroid']['geometry']['coordinates'])
+
+    # secondary generation
+    if vor_number > 0 and poly['voronoi'] != None:
+        voronoi = gpd.GeoDataFrame.from_features(poly['voronoi']['features'])
+        print(voronoi)
+        primary = int(np.ceil(num_points * (points_split/100)))
+        secondary = num_points - primary
+        vor_points = int(np.ceil(secondary / vor_number))
+        vor_points_gdf = gaussian_centre(voronoi, vor_points)
+        vor_points_gdf = vor_points_gdf.sample(secondary).reset_index(drop=True)
+    else:
+        primary = num_points
+
+    # primary generation
+    if gen_type == 1:
+        points_gdf = gaussian_moving_centre(gdf, primary, centroid)
+    else:
+        points_gdf = points_uniform(gdf, primary)
+
+    # combine primary and secondary points
+    
+    if vor_number > 0 and poly['voronoi'] != None:
+        points_out = pd.concat([points_gdf, vor_points_gdf], ignore_index=True)
+        #return points_out.sample(len(points_out)).reset_index(drop=True).to_json()
+        return {
+            'points' : points_out.sample(len(points_out)).reset_index(drop=True).to_json(),
+            'voronoi': voronoi.to_json()
+        }
+    else:
+        return {'points':points_gdf.to_json()}
+
+
+@app.route('/getroads', methods=['GET', 'POST'])
+def get_roads():
+    request_json = json.loads(request.data)
+    bbox = gpd.GeoDataFrame.from_features(request_json['data']['features'], crs=3857)
+    roads_gdf = get_roads_from_poly(bbox)
+    return {
+        'roads' : roads_gdf.to_crs(4326).to_json()
+    }
+
+@app.route('/roadpoints', methods=['GET', 'POST'])
+def get_road_points():
+    request_json = json.loads(request.data)
+    roads = gpd.GeoDataFrame.from_features(request_json['data']['features'], crs=4326).to_crs(3857)
+    road_points = road_distribution(roads, request_json['params']['num_points'], road_offset=request_json['params']['road_offset'], weighted=True)
+    return {
+        'points': road_points.to_crs(4326).to_json(),
+    }
+
+@app.route('/voronoi', methods=['GET', 'POST'])
+def voronoi():
+    poly = json.loads(request.data)
+    gdf = gpd.GeoDataFrame.from_features(poly['data']['features'])    
+    vor_number = poly['params']['vor_number']    
+    centroid = shapely.Point(poly['centroid']['geometry']['coordinates'])
+
+    # secondary generation
+    if vor_number > 0:
+        voronoi_gdf = radian.voronoi_gen(gdf, centroid, vor_number)
+    print(voronoi_gdf)
+    return voronoi_gdf.to_json()
+        
+
+@app.route('/save', methods=['GET', 'POST'])
+def save():
+    data = json.loads(request.get_data())
+    gdf = gpd.GeoDataFrame.from_features(data)
+    print(gdf.head(n=5))
+    gdf.to_file("static/gdf.geojson")
+    return send_from_directory(directory="static", path="gdf.geojson", as_attachment=True)
+
+
+if __name__ == '__main__':
+    app.run(host="localhost", port=8080, debug=False)
