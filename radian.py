@@ -685,6 +685,7 @@ def get_roads_from_poly(bbox, epsg=3857):
     # query overpassturbo for all roads within the given bounding box region.
     tags = {'highway': True}
     print("starting osmnx query...")
+    osmnx_start_ts = time.time()
     roads = ox.features_from_polygon(bbox.geometry[0], tags)
     roads = roads[(roads.geometry.type == "LineString") | (roads.geometry.type == "MultiLineString")]
     roads_clip = gpd.clip(roads, bbox)
@@ -697,6 +698,8 @@ def get_roads_from_poly(bbox, epsg=3857):
     multi_to_single = [line for multiline in multi_roads.geometry for line in multiline.geoms]
     all_roads = gpd.GeoDataFrame(geometry=(list(single_roads.geometry) + multi_to_single), crs=epsg)
     all_roads['length'] = all_roads.geometry.length
+    osmnx_end_ts = time.time()
+    print("osmnx: time take = ", osmnx_end_ts - osmnx_start_ts)
     return all_roads
 
 def radian():

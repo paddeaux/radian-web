@@ -1,7 +1,10 @@
 $(document).ready(function(){
     var marker;
     var disableMarker = false;
-    var map = L.map('map').fitWorld();
+    var map = L.map('map', {zoomControl: false}).fitWorld();
+    L.control.zoom({
+        position: 'bottomright'
+    }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: 
         '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -13,6 +16,7 @@ $(document).ready(function(){
     var pointGroup = L.featureGroup();
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
+
 
     map.addLayer(markersGroup);
     map.addLayer(polyGroup);
@@ -28,17 +32,28 @@ $(document).ready(function(){
             circle: false
         },
         edit: {
-            featureGroup: drawnGroup,
+            featureGroup: polyGroup,
             edit: false
         }
     });
+    var drawnPolyArea
+
+    // getting issue sometimes where the map drags rather than let drawing occur properly lol doesn't make a difference
+    map.on("draw:drawstart", function (e) {
+        disableMarker = true;        
+    })
+
+    map.on("draw:drawstop", function (e) {
+        disableMarker = false;        
+    })
 
     map.on("draw:created", function (e) {
-        console.log(e.layerType)
         if (e.layerType == 'rectangle') {
-            drawnGroup.clearLayers();
-            drawnGroup.addLayer(e.layer);
-            document.getElementById('radio_poly_drawn').disabled = false;
+            polyGroup.clearLayers();
+            poly = e.layer
+            polyGroup.addLayer(poly);
+            drawnPolyArea = L.GeometryUtil.geodesicArea(poly.getLatLngs()[0]);
+            console.log("polygon area is= ", (drawnPolyArea / 1000000).toFixed(2), "km^2");
         }
         if (e.layerType == 'marker') {
             markersGroup.clearLayers();
@@ -47,14 +62,17 @@ $(document).ready(function(){
         
     });
 
-    map.on("draw:deleted", function (e) {
-        drawnGroup.clearLayers()
-        document.getElementById('radio_poly_drawn').disabled = true;
-        document.getElementById('radio_poly_boundary').checked = true;
-    })
-
-    map.addControl(drawControl);
-
+    map.on("click", function (e) {
+        if (!disableMarker) {
+            if (markersGroup.getLayers().length < 0) {
+                markersGroup.addLayer(new L.marker(e.latlng));
+            }
+            else {
+                markersGroup.clearLayers();
+                markersGroup.addLayer(new L.marker(e.latlng));
+            }
+        }
+    });
 
 
     var geojsonMarkerOptions = {
@@ -71,21 +89,18 @@ $(document).ready(function(){
         var bound_type;
         if (document.getElementById("gen_gaussian").checked){
             gen_type = 1;
+        } else if (document.getElementById("gen_roads").checked){
+            gen_type = 2;
         } else {
-            gen_type = 0;
+            gen_type = 0
         }
-        if (document.getElementById("radio_poly_drawn").checked) {
-            bound_type = 1;
-        } else {
-            bound_type = 0
-        }
+
         console.log("testing:", +document.getElementById("points_split").value)
         return {
             "num_points" : +document.getElementById("random_points").value,
             "gen_type" : +gen_type,
             "vor_number" : +document.getElementById("vor_number").value,
             "points_split": +document.getElementById("points_split").value,
-            "bound_type": +bound_type,
             "road_offset": 5 // need to set UI slider for this
         }
     }
@@ -106,24 +121,23 @@ $(document).ready(function(){
 
     // Custom button panels
 
-    // bottomleft
-    const searchBar = L.control({ position: 'bottomleft' });
+    // UI Revamp
+    // **************** Top Left **********************
+
+    const searchBar = L.control({ position: 'topleft' });
     searchBar.onAdd = () => {
         const barDiv = L.DomUtil.create('div', 'searchbar-wrapper');
     barDiv.innerHTML = `
-        <div class="tooltip">
-            <span class="tooltiptext tooltip-search">Specify a location within which to generate data</span>
+        <span class="tooltiptext tooltip-search">Specify a location within which to generate data</span>
         <input type="text" value="Dublin, Ireland" id="location" required>
         `;
         return barDiv;
     };
-    searchBar.addTo(map);
-    disableDragging(searchBar);
 
     // Loading boundary button
-    const searchButton = L.control({ position: 'bottomleft' });
+    const searchButton = L.control({ position: 'topleft' });
     searchButton.onAdd = () => {
-        const buttonDiv = L.DomUtil.create('div', 'button-wrapper');
+        const buttonDiv = L.DomUtil.create('div', 'searchbutton-wrapper');
         buttonDiv.innerHTML = `
             <div class="tooltip">
                 <span class="tooltiptext tooltip-load">Load boundary</span>
@@ -164,17 +178,15 @@ $(document).ready(function(){
         });
         return buttonDiv;
     };
-    searchButton.addTo(map)
-    disableDragging(searchButton);
 
     // Zoom to boundary button
-    const zoomBoundary = L.control({ position: 'bottomleft' });
+    const zoomBoundary = L.control({ position: 'topleft' });
     zoomBoundary.onAdd = () => {
         const zoomDiv = L.DomUtil.create('div', 'zoom-wrapper');
         zoomDiv.innerHTML = `
             <div class="tooltip">
                 <span class="tooltiptext tooltip-home">Zoom to boundary</span>
-                <button class='button btn-icon home-btn' id='btn-zoom' title='Zoom to boundary' disabled><i class='fa-solid fa-house'></i></button>
+                <button class='button btn-icon' id='btn-zoom' title='Zoom to boundary' disabled><i class='fa-solid fa-house'></i></button>
             </div>
                 `;
         zoomDiv.addEventListener('click', () => {
@@ -183,8 +195,127 @@ $(document).ready(function(){
         });
         return zoomDiv;
     };
+    
+    //map.addControl(drawControl);
+    searchBar.addTo(map);
+    disableDragging(searchBar);
+    searchButton.addTo(map)
+    disableDragging(searchButton);
     zoomBoundary.addTo(map);
     disableDragging(zoomBoundary);
+
+    // ***************************  bottomleft  ************************************
+    const ratioSlider = L.control({ position: 'bottomleft'});
+    ratioSlider.onAdd = () => {
+        const ratioDiv = L.DomUtil.create('div', 'ratio-wrapper');
+        ratioDiv.innerHTML = `
+                        <legend class="slide-legend">Points Ratio</legend>
+                <div class='slidecontainer'>
+                    <input type="range" class='slider' value="50" id="points_split" name="points_split" min="0" max="100" step="1" oninput="this.nextElementSibling.value = this.value"/>
+                    <output class='param-text'>50</output>%
+                </div>`;
+        return ratioDiv;
+    }
+
+    const pointSlider = L.control({ position: 'bottomleft'});
+    pointSlider.onAdd = () => {
+        const pointDiv = L.DomUtil.create('div', 'point-wrapper');
+        pointDiv.innerHTML = `
+            <legend class="slide-legend">Number of Points</legend>
+                <div class='slidecontainer'>
+                    <input type="range" class='slider' value="250" id="random_points" name="random_points" min="0" max="5000" step="50" oninput="this.nextElementSibling.value = this.value"/>
+                    <output class='param-text'>250</output>
+                </div>`;
+
+        return pointDiv;
+    }
+
+    const pointChoice = L.control({ position: 'bottomleft'});
+    pointChoice.onAdd = () => {
+        const choiceDiv = L.DomUtil.create('div', 'choice-wrapper');
+        choiceDiv.innerHTML = `
+            <legend class="slide-legend">Points Distribution:</legend>
+            <div class='slidecontainer'>
+            <div>   
+                <input type="radio" class='radio' id="gen_uniform" name="distribution" value="uniform" checked />
+                <label for="gen_uniform">Uniform</label>
+            </div>
+                <div>
+                    <input type="radio" class='radio' id="gen_gaussian" name="distribution" value="gaussian" />
+                    <label for="gen_gaussian">Gaussian</label>
+                </div>
+                <div>
+                    <input type="radio" class='radio' id="gen_roads" name="distribution" value="roads" />
+                    <label for="gen_roads">Roads</label>
+                </div>
+            </div>`;
+        return choiceDiv;
+    }
+
+    const voronoiSlider = L.control({ position: 'bottomleft'});
+    voronoiSlider.onAdd = () => {
+        const vorDiv = L.DomUtil.create('div', 'voronoi-wrapper');
+        vorDiv.innerHTML = `
+                <legend class="slide-legend">Voronoi Generation</legend>
+                <div class='slidecontainer'>
+                    <input type="range" class='slider' value="3" id="vor_number" name="vor_number" min="3" max="64" step="1" oninput="this.nextElementSibling.value = this.value;"/>
+                    <output class='param-text'>3</output>
+                </div>`;
+        return vorDiv;
+    }
+
+    const readoutWindow = L.control({ position: 'topleft'});
+    readoutWindow.onAdd = () => {
+        const readoutDiv = L.DomUtil.create('div', 'readout-wrapper');
+        readoutDiv.innerHTML = `
+            <div class='readout' id='readout-panel' hidden>
+                Placeholder text
+            </div>`;
+        return readoutDiv;
+    }; 
+
+    // Readout stuff
+    const generationInfo = L.control({ position: 'bottomleft'});
+    generationInfo.onAdd = () => {
+        const infoDiv = L.DomUtil.create('div', 'geninfo-wrapper');
+        var mydict = getParams()
+        infoDiv.innerHTML = `
+            <legend class='slide-legend'>Layer Info</legend>
+            <div class='slidecontainer slide-big' id='gen-info'>
+            <table>
+                <tr>
+                    <th>Total Points</th>
+                    <th>Gen. Type</th>
+                    <th>No. Voronoi</th>
+                    <th>Point Split</th>
+                </tr>
+                <tr>
+                    <td>${mydict['num_points']}</td>
+                    <td>${mydict['gen_type']}</td>
+                    <td>${mydict['vor_number']}</td>
+                    <td>${mydict['points_split']}</td>
+                </tr>
+            </table>
+            </div>`;
+        return infoDiv;
+    };
+
+
+    //bottom left stuff
+    voronoiSlider.addTo(map);
+    disableDragging(voronoiSlider);
+    ratioSlider.addTo(map);
+    disableDragging(ratioSlider);
+    pointSlider.addTo(map);
+    disableDragging(pointSlider);
+    pointChoice.addTo(map);
+    disableDragging(pointChoice);
+    generationInfo.addTo(map);
+    disableDragging(generationInfo); 
+
+    readoutWindow.addTo(map);
+    disableDragging(readoutWindow);  
+
 
     // ************************* topright **********************************
 
@@ -203,7 +334,7 @@ $(document).ready(function(){
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({
-                        'data' : drawnGroup.toGeoJSON(),
+                        'data' : polyGroup.toGeoJSON(),
                         'params' : getParams()
                     }),
                         success: function(response){
@@ -327,12 +458,7 @@ $(document).ready(function(){
                 `;
         genDiv.addEventListener('click', () => {
             console.log("number of polys is=", polyGroup.getLayers().length);
-            if (document.getElementById("radio_poly_boundary").checked){
-                genGroup = polyGroup;
-            } else {
-                genGroup = drawnGroup;
-            }
-            if(polyGroup.getLayers().length == 0 && drawnGroup.getLayers().length == 0) {
+            if(polyGroup.getLayers().length == 0) {
                 readoutMessage("Please load/draw an area boundary before generating a dataset.");
                 return;
             }
@@ -346,7 +472,6 @@ $(document).ready(function(){
                         return L.marker(polyGroup.getBounds().getCenter()).addTo(markersGroup);
                     } 
                     else {
-                        console.log("goodbye:", markersGroup)
                         return markersGroup.getLayers()[0];
                     }    
                 }
@@ -356,7 +481,7 @@ $(document).ready(function(){
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({
-                        'data' : genGroup.toGeoJSON(),
+                        'data' : polyGroup.toGeoJSON(),
                         'params' : getParams(),
                         'centroid' : getCentroid().toGeoJSON(),
                         'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null             
@@ -376,6 +501,7 @@ $(document).ready(function(){
                                     L.geoJSON(JSON.parse(response['voronoi'])).addTo(vorGroup);
                                 }
                             }
+                            refreshInfo()
                             document.getElementById('btn-generate').disabled = false;
                             document.getElementById('btn-download').disabled = false;
                             readoutMessage(getParams());
@@ -435,82 +561,6 @@ $(document).ready(function(){
         return downDiv;
     }
 
-    // ***************************  bottomright  ************************************
-    const ratioSlider = L.control({ position: 'bottomright'});
-    ratioSlider.onAdd = () => {
-        const ratioDiv = L.DomUtil.create('div', 'ratio-wrapper');
-        ratioDiv.innerHTML = `
-                        <legend>Points Ratio</legend>
-                <div class='slidecontainer'>
-                    <input type="range" class='slider' value="50" id="points_split" name="points_split" min="0" max="100" step="1" oninput="this.nextElementSibling.value = this.value"/>
-                    <output class='param-text'>50</output>%
-                </div>`;
-        return ratioDiv;
-    }
-
-    const pointSlider = L.control({ position: 'bottomright'});
-    pointSlider.onAdd = () => {
-        const pointDiv = L.DomUtil.create('div', 'point-wrapper');
-        pointDiv.innerHTML = `
-            <legend>Number of Points</legend>
-                <div class='slidecontainer'>
-                    <input type="range" class='slider' value="250" id="random_points" name="random_points" min="0" max="5000" step="50" oninput="this.nextElementSibling.value = this.value"/>
-                    <output class='param-text'>250</output>
-                </div>`;
-
-        return pointDiv;
-    }
-
-    const polyChoice = L.control({ position: 'bottomright'});
-    polyChoice.onAdd = () => {
-        const choiceDiv = L.DomUtil.create('div', 'polychoice-wrapper');
-        choiceDiv.innerHTML = `
-            <legend>Polygon Layer</legend>
-            <div class='slidecontainer'>
-                <input type="radio" class='radio' id="radio_poly_boundary" name="poly-type" value="boundary" checked />
-                <label for="gen_uniform">Loaded Boundary</label><br>
-                <input type="radio" class='radio' id="radio_poly_drawn" name="poly-type" value="drawn" disabled/>
-                <label for="gen_gaussian">Drawn Polygon</label>
-            </div>`;
-        return choiceDiv;
-    }
-
-    const pointChoice = L.control({ position: 'bottomright'});
-    pointChoice.onAdd = () => {
-        const choiceDiv = L.DomUtil.create('div', 'choice-wrapper');
-        choiceDiv.innerHTML = `
-            <legend>Points Distribution:</legend>
-            <div class='slidecontainer'>
-                <input type="radio" class='radio' id="gen_uniform" name="distribution" value="uniform" checked />
-                <label for="gen_uniform">Uniform</label>
-                <input type="radio" class='radio' id="gen_gaussian" name="distribution" value="gaussian" />
-                <label for="gen_gaussian">Gaussian</label>
-            </div>`;
-        return choiceDiv;
-    }
-
-    const voronoiSlider = L.control({ position: 'bottomright'});
-    voronoiSlider.onAdd = () => {
-        const vorDiv = L.DomUtil.create('div', 'voronoi-wrapper');
-        vorDiv.innerHTML = `
-                <legend>Voronoi Generation</legend>
-                <div class='slidecontainer'>
-                    <input type="range" class='slider' value="3" id="vor_number" name="vor_number" min="3" max="64" step="1" oninput="this.nextElementSibling.value = this.value;"/>
-                    <output class='param-text'>3</output>
-                </div>`;
-        return vorDiv;
-    }
-
-    const readoutWindow = L.control({ position: 'topleft'});
-    readoutWindow.onAdd = () => {
-        const readoutDiv = L.DomUtil.create('div', 'readout-wrapper');
-        readoutDiv.innerHTML = `
-            <div class='readout' id='readout-panel' hidden>
-                Placeholder text
-            </div>`;
-        return readoutDiv;
-    }; 
-    // ordering of UI/buttons
 
     //top right stuff
     generateButton.addTo(map);
@@ -526,19 +576,7 @@ $(document).ready(function(){
     downloadButton.addTo(map);
     disableDragging(downloadButton);
 
-    //bottom right stuff
-    ratioSlider.addTo(map);
-    disableDragging(ratioSlider);
-    pointSlider.addTo(map);
-    disableDragging(pointSlider);
-    polyChoice.addTo(map)
-    disableDragging(polyChoice);
-    pointChoice.addTo(map);
-    disableDragging(pointChoice);
-    voronoiSlider.addTo(map);
-    disableDragging(voronoiSlider);
-    readoutWindow.addTo(map);
-    disableDragging(readoutWindow);  
+
 
     function readoutMessage(msg, time=5000) {
         document.getElementById('readout-panel').innerHTML = msg;
@@ -546,32 +584,7 @@ $(document).ready(function(){
         $('#readout-panel').delay(time).fadeOut(400);
     }
 
-    // Readout stuff
-    const generationInfo = L.control({ position: 'bottomright'});
-    generationInfo.onAdd = () => {
-        const infoDiv = L.DomUtil.create('div', 'geninfo-wrapper');
-        var mydict = getParams()
-        infoDiv.innerHTML = `
-            <div class='slidecontainer' id='gen-info'>
-            <table>
-                <tr>
-                    <th>Total Points</th>
-                    <th>Gen. Type</th>
-                    <th>No. Voronoi</th>
-                    <th>Point Split</th>
-                </tr>
-                <tr>
-                    <td>${mydict['num_points']}</td>
-                    <td>${mydict['gen_type']}</td>
-                    <td>${mydict['vor_number']}</td>
-                    <td>${mydict['points_split']}</td>
-                </tr>
-            </table>
-            </div>`;
-        return infoDiv;
-    };
-    generationInfo.addTo(map);
-    disableDragging(generationInfo);  
+ 
 
     function refreshInfo() {
         generationInfo.remove(map);
@@ -592,7 +605,7 @@ $(document).ready(function(){
         });
     }
     
-    infoListeners()
+    //infoListeners()
     let welcomeMessage = `
         Welcome to RADIAN! A Python-based tool for generating synthetic spatial datasets\n
         To start, search for a city/country boundary, then hit the magic wand to generate a dataset!

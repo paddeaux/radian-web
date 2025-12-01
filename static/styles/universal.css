@@ -21,13 +21,43 @@ p {
     color: white;
     padding: 15px 32px;
     border-radius: 12px;
+    height: 48px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
-    margin: 4px 2px;
+    margin: auto;
     cursor: pointer;
+}
 
+input[type=text] {
+    border: 2px solid #b5ff8d;
+    border-radius: 12px;
+    height: 48px;
+    width: 384px;
+    font-size: 16px;
+    padding: 15px 15px;
+    margin: none;
+}
+
+
+.searchbutton-wrapper.leaflet-control {
+    transform: translate(800%, -100%);
+    margin: none;
+    margin-top: 0px;
+    margin-left: 0px;
+}
+
+.zoom-wrapper.leaflet-control {
+    transform: translate(900%, -200%);
+    margin: auto;
+    margin-top: 0px;
+    margin-left: 10px
+}
+
+
+.button-wrapper {
+    margin: 0px;
 }
 
 .button:hover {
@@ -42,12 +72,21 @@ p {
 }
 
 .slidecontainer {
-    width: 200px;
+    width: 144px;
     border-style: none;
     background-color: #b5ff8d;
     border-radius: 12px;
     text-align:center;
     padding: 10px 15px;
+    font-size: 12px;
+}
+
+.slide-big {width: 192px;}
+
+.slide-legend {font-size: 16px;}
+
+.geninfo-wrapper {
+    transform: translate(80%, 385%)
 }
 
 .slider {
@@ -81,24 +120,6 @@ p {
     text-align: center;
 }
 
-input[type=text] {
-    border: 2px solid #b5ff8d;
-    border-radius: 12px;
-    height: 40px;
-    width: 300px;
-    font-size: 16px;
-    padding: 15px 15px;
-    margin: 4px 2px;
-}
-
-.search-btn {
-    transform: translate(620%, 125%);
-}
-
-.home-btn {
-    transform: translate(740%, 262%);
-}
-
 .readout {
     background-color: bisque;
     width: 250px;
@@ -110,8 +131,7 @@ input[type=text] {
     margin: 4px 2px;
 }
 
-.choice-wrapper {font-size: 16px;}
-.polychoice-wrapper {font-size: 16px;}
+
 
 /*https://www.w3schools.com/css/css_tooltip.asp*/
 .tooltip {
@@ -123,11 +143,11 @@ input[type=text] {
 /* Tooltip text */
 .tooltiptext {
     visibility: hidden; /* Hidden by default */
-    width: 175px;
+    width: 144px;
     background-color: black;
     color: #ffffff;
     text-align: center;
-    padding: 5px 0;
+    padding: 5px 5px;
     border-radius: 6px;
     position: absolute;
     z-index: 1; /* Ensure tooltip is displayed above content */
@@ -146,13 +166,13 @@ input[type=text] {
 .tooltip-home {
     bottom: 100%;
     left: 65%;
-    transform: translate(155%, 425%);
+    transform: translate(-50%, 300%);
 }
 
 .tooltip-load {
     bottom: 100%;
     left: 65%;
-    transform: translate(125%, 190%);
+    transform: translate(-50%, 300%);
 }
 
 .tooltip-search {
