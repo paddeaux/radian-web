@@ -29,6 +29,8 @@ def process():
     points_split = poly['params']['points_split']
     centroid = shapely.Point(poly['centroid']['geometry']['coordinates'])
 
+    points_gdf = gpd.GeoDataFrame(geometry=[])
+    vor_points_gdf = gpd.GeoDataFrame(geometry=[])
     # secondary generation
     if vor_number > 0 and poly['voronoi'] != None:
         voronoi = gpd.GeoDataFrame.from_features(poly['voronoi']['features'])

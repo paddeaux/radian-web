@@ -17,7 +17,21 @@ $(document).ready(function(){
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
 
-
+    var polyArea = 0;
+    /*
+    polyGroup.on('layeradd', function (e) {
+        if (e.layerType == 'rectangle') {
+            polyGroup.clearLayers();
+            poly = e.layer
+            polyGroup.addLayer(poly);
+            console.log("drawn poly:", poly);
+            drawnPolyArea = L.GeometryUtil.geodesicArea(poly.getLatLngs()[0]);
+            console.log("polygon area is= ", (drawnPolyArea / 1000000).toFixed(2), "km^2");
+        } else {
+            polyArea = L.GeometryUtil.geodesicArea(e.layer.getLayers()[0].getLatLngs()[0]);
+        }
+    })
+    */
     map.addLayer(markersGroup);
     map.addLayer(polyGroup);
     map.addLayer(vorGroup);
@@ -29,14 +43,11 @@ $(document).ready(function(){
         draw: {
             polyline: false,
             polygon: false,
-            circle: false
-        },
-        edit: {
-            featureGroup: polyGroup,
-            edit: false
+            circle: false,
+            marker: false
         }
+        
     });
-    var drawnPolyArea
 
     // getting issue sometimes where the map drags rather than let drawing occur properly lol doesn't make a difference
     map.on("draw:drawstart", function (e) {
@@ -52,6 +63,7 @@ $(document).ready(function(){
             polyGroup.clearLayers();
             poly = e.layer
             polyGroup.addLayer(poly);
+            console.log("drawn poly:", poly);
             drawnPolyArea = L.GeometryUtil.geodesicArea(poly.getLatLngs()[0]);
             console.log("polygon area is= ", (drawnPolyArea / 1000000).toFixed(2), "km^2");
         }
@@ -169,8 +181,10 @@ $(document).ready(function(){
                     polyGroup.clearLayers();
                     L.geoJSON(geojsonFeature).addTo(polyGroup);
                 }
-                console.log("geojson is:", geojsonFeature);
+                console.log(polyGroup.getLayers()[0].getLayers()[0].getLatLngs()[0])
+                polyArea = L.GeometryUtil.geodesicArea(polyGroup.getLayers()[0].getLayers()[0].getLatLngs()[0]);
                 map.fitBounds(polyGroup.getBounds());
+                refreshInfo();
             })
             document.getElementById('btn-generate').disabled = false;
             document.getElementById('btn-zoom').disabled = false;
@@ -196,13 +210,14 @@ $(document).ready(function(){
         return zoomDiv;
     };
     
-    //map.addControl(drawControl);
     searchBar.addTo(map);
     disableDragging(searchBar);
     searchButton.addTo(map)
     disableDragging(searchButton);
     zoomBoundary.addTo(map);
     disableDragging(zoomBoundary);
+    map.addControl(drawControl);
+
 
     // ***************************  bottomleft  ************************************
     const ratioSlider = L.control({ position: 'bottomleft'});
@@ -237,8 +252,7 @@ $(document).ready(function(){
             <legend class="slide-legend">Points Distribution:</legend>
             <div class='slidecontainer'>
             <div>   
-                <input type="radio" class='radio' id="gen_uniform" name="distribution" value="uniform" checked />
-                <label for="gen_uniform">Uniform</label>
+                <input type="radio" class='radio' id="gen_uniform" name="distribution" value="uniform" checked />Uniform
             </div>
                 <div>
                     <input type="radio" class='radio' id="gen_gaussian" name="distribution" value="gaussian" />
@@ -288,12 +302,14 @@ $(document).ready(function(){
                     <th>Gen. Type</th>
                     <th>No. Voronoi</th>
                     <th>Point Split</th>
+                    <th>Boundary Area</th>
                 </tr>
                 <tr>
-                    <td>${mydict['num_points']}</td>
+                    <td>${pointGroup.getLayers().length}</td>
                     <td>${mydict['gen_type']}</td>
-                    <td>${mydict['vor_number']}</td>
+                    <td>${vorGroup.getLayers().length}</td>
                     <td>${mydict['points_split']}</td>
+                    <td>${(polyArea / 1000000).toFixed(2)}km2</td>
                 </tr>
             </table>
             </div>`;
@@ -328,24 +344,29 @@ $(document).ready(function(){
                 <button class='button btn-icon' title='Retrieve road network'><i class='fa-solid fa-road'></i></button>
             </div>`;
         roadDiv.addEventListener('click', () => {
-            if(getParams()['bound_type'] == 1) {
-                $.ajax({
-                    url: "/getroads",
-                    type: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify({
-                        'data' : polyGroup.toGeoJSON(),
-                        'params' : getParams()
-                    }),
-                        success: function(response){
-                            console.log("roads", JSON.parse(response['roads']))
-                            lineGroup.clearLayers()
-                            L.geoJSON(JSON.parse(response['roads'])).addTo(lineGroup)
-                        },
-                        error: function(response){
-                            console.log("we dun goofed")
-                        }
-                });
+            if(polyGroup.getLayers().length > 0) {
+                if((polyArea / 1000000) < 2) {
+                    $.ajax({
+                        url: "/getroads",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            'data' : polyGroup.toGeoJSON(),
+                            'params' : getParams()
+                        }),
+                            success: function(response){
+                                console.log("roads", JSON.parse(response['roads']))
+                                lineGroup.clearLayers()
+                                L.geoJSON(JSON.parse(response['roads'])).addTo(lineGroup)
+                            },
+                            error: function(response){
+                                console.log("we dun goofed")
+                            }
+                    });
+                } else {
+                    readoutMessage("Area is too large. Area limit is 2km^2.");
+                    return
+                }
             } else {
                 readoutMessage("Please load/draw an area boundary before generating a dataset.");
                 return;
@@ -463,55 +484,89 @@ $(document).ready(function(){
                 return;
             }
             if(getParams()['num_points'] > 0) {
-                console.log('generate data');
-                document.getElementById('btn-generate').disabled = true;
-                console.log(getParams())
-                function getCentroid(){
-                    if (markersGroup.getLayers().length < 1) {
-                        console.log("test:", L.marker(polyGroup.getBounds().getCenter()));
-                        return L.marker(polyGroup.getBounds().getCenter()).addTo(markersGroup);
-                    } 
-                    else {
-                        return markersGroup.getLayers()[0];
-                    }    
-                }
-                
-                $.ajax({
-                    url: "/test",
-                    type: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify({
-                        'data' : polyGroup.toGeoJSON(),
-                        'params' : getParams(),
-                        'centroid' : getCentroid().toGeoJSON(),
-                        'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null             
-                    }),
-                        success: function(response){
-                            if (pointGroup.getLayers().length > 0) {
-                                pointGroup.clearLayers();
-                            }
-                            L.geoJSON(JSON.parse(response['points']), {
-                                pointToLayer: function (feature, latlng) {
-                                    return L.circleMarker(latlng, geojsonMarkerOptions);
+                // Road distribution
+                if(getParams()['gen_type'] == 2) {
+                    if(lineGroup.getLayers().length > 0) {
+                        $.ajax({
+                            url: "/roadpoints",
+                            type: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify({
+                                'data' : lineGroup.toGeoJSON(),
+                                'params' : getParams()
+                            }),
+                                success: function(response){
+                                    if (pointGroup.getLayers().length > 0) {
+                                        pointGroup.clearLayers();
+                                    }
+                                    console.log("plotting points", JSON.parse(response['points']))
+                                    L.geoJSON(JSON.parse(response['points']), {
+                                        pointToLayer: function (feature, latlng) {
+                                            return L.circleMarker(latlng, geojsonMarkerOptions);
+                                        }
+                                    }).addTo(pointGroup)
+                                    console.log("added points")
+                                },
+                                error: function(response){
+                                    console.log("we dun goofed")
                                 }
-                            }).addTo(pointGroup)
-                            if('voronoi' in response) {
-                                if (vorGroup.getLayers().length < 1) {
-                                    vorGroup.clearLayers()
-                                    L.geoJSON(JSON.parse(response['voronoi'])).addTo(vorGroup);
-                                }
-                            }
-                            refreshInfo()
-                            document.getElementById('btn-generate').disabled = false;
-                            document.getElementById('btn-download').disabled = false;
-                            readoutMessage(getParams());
-                        }
-                    });
+                        });
+                    } else {
+                        readoutMessage("Please load the road network for your loaded region.");
+                    }
+                // Uniform or Gaussian points  
                 } else {
-                    console.log("no points value.");
-                    readoutMessage("Please select a points value with the points slider.");
-                }
-            });
+                    console.log('generate data');
+                    document.getElementById('btn-generate').disabled = true;
+                    console.log(getParams())
+                    function getCentroid(){
+                        if (markersGroup.getLayers().length < 1) {
+                            console.log("test:", L.marker(polyGroup.getBounds().getCenter()));
+                            return L.marker(polyGroup.getBounds().getCenter()).addTo(markersGroup);
+                        } 
+                        else {
+                            return markersGroup.getLayers()[0];
+                        }    
+                    }
+                    
+                    $.ajax({
+                        url: "/test",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            'data' : polyGroup.toGeoJSON(),
+                            'params' : getParams(),
+                            'centroid' : getCentroid().toGeoJSON(),
+                            'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null             
+                        }),
+                            success: function(response){
+                                if (pointGroup.getLayers().length > 0) {
+                                    pointGroup.clearLayers();
+                                }
+                                L.geoJSON(JSON.parse(response['points']), {
+                                    pointToLayer: function (feature, latlng) {
+                                        return L.circleMarker(latlng, geojsonMarkerOptions);
+                                    }
+                                }).addTo(pointGroup)
+                                if('voronoi' in response) {
+                                    if (vorGroup.getLayers().length < 1) {
+                                        vorGroup.clearLayers()
+                                        L.geoJSON(JSON.parse(response['voronoi'])).addTo(vorGroup);
+                                    }
+                                }
+                                refreshInfo()
+                                console.log("points:", pointGroup.getLayers()[0].getLayers().length)
+                                document.getElementById('btn-generate').disabled = false;
+                                document.getElementById('btn-download').disabled = false;
+                                readoutMessage(getParams());
+                            }
+                    });
+                } 
+            } else {
+                console.log("no points value.");
+                readoutMessage("Please select a points value with the points slider.");
+            }
+        });
         return genDiv;
     };
 

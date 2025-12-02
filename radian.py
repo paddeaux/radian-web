@@ -73,7 +73,7 @@ def points_uniform(poly, num_points, epsg=4326):
     points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
     
     for geom in poly.geometry:
-            
+        points_found = False   
         min_x, min_y, max_x, max_y = geom.bounds
         poly_ratio = poly_bb_ratio(geom)
         points = []
@@ -256,14 +256,22 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326):
     points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
 
     for geom in poly.geometry:
+        points_found = False
         min_x, min_y, max_x, max_y = geom.bounds
         cx, cy = centre.x, centre.y
         sd_x = (max_y - min_y)/3
         sd_y = (max_x - min_x)/3
         cov = np.array([[sd_y**2, 0], [0, sd_x**2]])
-        pts = pd.DataFrame(np.random.multivariate_normal((cx, cy), cov, size=num_points), columns=['x','y'])
-        geo_pts = gpd.GeoDataFrame(geometry=gpd.points_from_xy(pts['x'], pts['y'], crs=epsg))
-        geo_pts = geo_pts.sjoin(gpd.GeoDataFrame(geometry=gpd.GeoSeries([geom]), crs=epsg), predicate='within')
+        while not points_found:
+            pts = pd.DataFrame(np.random.multivariate_normal((cx, cy), cov, size=num_points), columns=['x','y'])
+            geo_pts = gpd.GeoDataFrame(geometry=gpd.points_from_xy(pts['x'], pts['y'], crs=epsg))
+            geo_pts = geo_pts.sjoin(gpd.GeoDataFrame(geometry=gpd.GeoSeries([geom]), crs=epsg), predicate='within')
+            if num_points < len(geo_pts):
+                geo_pts = geo_pts.sample(num_points)
+                points_found = True
+            else:
+                print("issue found")
+                print("generated points = ", len(geo_pts), ", sample size = ", num_points)
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
     return points_out
 

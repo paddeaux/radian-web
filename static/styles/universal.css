@@ -30,6 +30,101 @@ p {
     cursor: pointer;
 }
 
+.leaflet-draw-section {
+    width: 48px;
+    height: 48px;
+}
+
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-rectangle{
+    background-color: #b5ff8d; 
+    color: black;
+    border-radius: 12px;
+    padding: 15px 15px;
+    height: 48px;
+    width: 48px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: auto;
+    cursor: pointer;
+}
+
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-rectangle:hover {
+    background-color: #75a95a;
+    color: black
+}
+
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-rectangle {
+    background-size: 540px 60px;
+    background-position: -125px -5px;
+    transform: translate(1060%, -322%);
+}
+
+.leaflet-draw-draw-rectangle .leaflet-draw-toolbar-button-enabled {
+    transform: translate(1060%, -322%);
+
+}
+
+.leaflet-touch .leaflet-bar a:first-child {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+
+.leaflet-touch .leaflet-bar a:last-child {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+/*
+.leaflet-touch .leaflet-bar a:first-child {
+    border: none;
+    background-color: #b5ff8d; 
+    color: black;
+    border-radius: 12px;
+    padding: 15px 15px;
+    height: 48px;
+    width: 48px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: auto;
+    cursor: pointer;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.leaflet-touch .leaflet-bar a:last-child {
+    border: none;
+    background-color: #b5ff8d; 
+    color: black;
+    border-radius: 12px;
+    padding: 15px 15px;
+    height: 48px;
+    width: 48px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: auto;
+    cursor: pointer;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+*/
+.leaflet-touch .leaflet-control-layers, .leaflet-touch .leaflet-bar {
+    border: none;
+}
+
 input[type=text] {
     border: 2px solid #b5ff8d;
     border-radius: 12px;
@@ -65,6 +160,11 @@ input[type=text] {
     color: black
 }
 
+.button:disabled {
+    background-color: #75a95a;
+    color: black
+}
+
 .btn-icon {
     background-color: #b5ff8d; 
     color: black;
@@ -81,12 +181,15 @@ input[type=text] {
     font-size: 12px;
 }
 
-.slide-big {width: 192px;}
+.slide-big {
+    width: 384px;
+    font-size: 20px;
+}
 
 .slide-legend {font-size: 16px;}
 
 .geninfo-wrapper {
-    transform: translate(80%, 385%)
+    transform: translate(60%, 275%)
 }
 
 .slider {
@@ -112,6 +215,8 @@ input[type=text] {
 
 .radio {
     cursor: pointer;
+    vertical-align: middle;
+    margin: 0px;
 }
 
 .param-text {
@@ -122,13 +227,15 @@ input[type=text] {
 
 .readout {
     background-color: bisque;
-    width: 250px;
+    width: 288px;
+    height: 96px;
     color: black;
     border: 2px solid #75a95a;
     border-radius: 12px;
     font-size: 12px;
     padding: 15px 15px;
-    margin: 4px 2px;
+    margin: auto;
+    transform: translate(0%, -100%);
 }
 
 
@@ -185,48 +292,3 @@ input[type=text] {
 .tooltip:hover .tooltiptext {
     visibility: visible;
 }
-/*
-.leaflet-draw-section {
-    border: none;
-}
-.leaflet-draw-toolbar-top{
-    background-color: none;
-    border: 0;
-    width: 150px;
-    height: 200px;
-}
-
-.leaflet-draw-toolbar .leaflet-draw-draw-rectangle {
-    padding: 15px 15;
-    border-radius: 12px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    cursor: pointer;
-    background-color: #b5ff8d;
-}
-
-.leaflet-draw-toolbar .leaflet-draw-draw-marker {
-    padding: 15px 15;
-    border-radius: 12px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    cursor: pointer;
-    background-color: #b5ff8d;
-}
-
-.leaflet-draw-toolbar .leaflet-draw-draw-rectangle:hover {
-    background-color: #75a95a;
-    color: black
-}
-
-.leaflet-draw-toolbar .leaflet-draw-draw-marker:hover {
-    background-color: #75a95a;
-    color: black
-}
-*/
