@@ -78,7 +78,7 @@ def points_uniform(poly, num_points, epsg=4326):
         poly_ratio = poly_bb_ratio(geom)
         points = []
         # Generates points repeatedly with a uniform generation within the bounds of the polygon
-        while len(points) < round(num_points * poly_ratio):
+        while len(points) < round(num_points * 3):
             points.append(Point([random.uniform(min_x, max_x), random.uniform(min_y, max_y)]))
         gdf = gpd.GeoDataFrame(pd.DataFrame(points, columns=['geometry']), geometry='geometry', crs=epsg)
         gdf = gdf.sjoin(poly, predicate='within')
@@ -263,14 +263,14 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326):
         sd_y = (max_x - min_x)/3
         cov = np.array([[sd_y**2, 0], [0, sd_x**2]])
         while not points_found:
-            pts = pd.DataFrame(np.random.multivariate_normal((cx, cy), cov, size=num_points), columns=['x','y'])
+            pts = pd.DataFrame(np.random.multivariate_normal((cx, cy), cov, size=int(round(num_points*4))), columns=['x','y'])
             geo_pts = gpd.GeoDataFrame(geometry=gpd.points_from_xy(pts['x'], pts['y'], crs=epsg))
             geo_pts = geo_pts.sjoin(gpd.GeoDataFrame(geometry=gpd.GeoSeries([geom]), crs=epsg), predicate='within')
             if num_points < len(geo_pts):
                 geo_pts = geo_pts.sample(num_points)
                 points_found = True
             else:
-                print("issue found")
+                print("issue found in Gaussian moving centre")
                 print("generated points = ", len(geo_pts), ", sample size = ", num_points)
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
     return points_out

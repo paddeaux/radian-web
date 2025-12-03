@@ -33,6 +33,7 @@ def process():
     vor_points_gdf = gpd.GeoDataFrame(geometry=[])
     # secondary generation
     if vor_number > 0 and poly['voronoi'] != None:
+        print("generating secondary points")
         voronoi = gpd.GeoDataFrame.from_features(poly['voronoi']['features'])
         print(voronoi)
         primary = int(np.ceil(num_points * (points_split/100)))
@@ -43,6 +44,7 @@ def process():
     else:
         primary = num_points
 
+    print("generating primary points")
     # primary generation
     if gen_type == 1:
         points_gdf = gaussian_moving_centre(gdf, primary, centroid)

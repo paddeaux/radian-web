@@ -172,7 +172,7 @@ input[type=text] {
 }
 
 .slidecontainer {
-    width: 144px;
+    width: 192px;
     border-style: none;
     background-color: #b5ff8d;
     border-radius: 12px;
@@ -181,15 +181,19 @@ input[type=text] {
     font-size: 12px;
 }
 
+.slide-tall {
+    height: 96px;
+}
+
 .slide-big {
-    width: 384px;
+    width: 768px;
     font-size: 20px;
 }
 
 .slide-legend {font-size: 16px;}
 
 .geninfo-wrapper {
-    transform: translate(60%, 275%)
+    transform: translate(60%, 0%)
 }
 
 .slider {

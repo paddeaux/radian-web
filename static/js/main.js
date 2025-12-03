@@ -64,8 +64,9 @@ $(document).ready(function(){
             poly = e.layer
             polyGroup.addLayer(poly);
             console.log("drawn poly:", poly);
-            drawnPolyArea = L.GeometryUtil.geodesicArea(poly.getLatLngs()[0]);
-            console.log("polygon area is= ", (drawnPolyArea / 1000000).toFixed(2), "km^2");
+            polyArea = L.GeometryUtil.geodesicArea(poly.getLatLngs()[0]);
+            console.log("polygon area is= ", (polyArea / 1000000).toFixed(2), "km^2");
+            refreshInfo()
         }
         if (e.layerType == 'marker') {
             markersGroup.clearLayers();
@@ -237,11 +238,10 @@ $(document).ready(function(){
         const pointDiv = L.DomUtil.create('div', 'point-wrapper');
         pointDiv.innerHTML = `
             <legend class="slide-legend">Number of Points</legend>
-                <div class='slidecontainer'>
+                <div class='slidecontainer slide-tall'>
                     <input type="range" class='slider' value="250" id="random_points" name="random_points" min="0" max="5000" step="50" oninput="this.nextElementSibling.value = this.value"/>
                     <output class='param-text'>250</output>
                 </div>`;
-
         return pointDiv;
     }
 
@@ -299,16 +299,20 @@ $(document).ready(function(){
             <table>
                 <tr>
                     <th>Total Points</th>
+                    <th>Primary Points</th>
+                    <th>Secondary Points</th>
                     <th>Gen. Type</th>
                     <th>No. Voronoi</th>
                     <th>Point Split</th>
                     <th>Boundary Area</th>
                 </tr>
                 <tr>
-                    <td>${pointGroup.getLayers().length}</td>
+                    <td>${(pointGroup.getLayers().length < 1) ? 0 : pointGroup.getLayers()[0].getLayers().length}</td>
+                    <td>${(pointGroup.getLayers().length < 1) ? 0 : (pointGroup.getLayers()[0].getLayers().length) * (mydict['points_split']/100)}
+                    <td>${(pointGroup.getLayers().length < 1) ? 0 : (pointGroup.getLayers()[0].getLayers().length) * 1-(mydict['points_split']/100)}
+                    <td>${mydict['points_split']}% primary, ${100 - mydict['points_split']}% secondary </td>
                     <td>${mydict['gen_type']}</td>
                     <td>${vorGroup.getLayers().length}</td>
-                    <td>${mydict['points_split']}</td>
                     <td>${(polyArea / 1000000).toFixed(2)}km2</td>
                 </tr>
             </table>
