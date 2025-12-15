@@ -635,6 +635,7 @@ $(document).ready(function(){
                         <option value="regex">Regular Expression</option>
                     </select>
                     <div id='meta_options'>Test</div>
+                    <div><input id='var_button_add' type='button' value='Add variable'><input id='var_button_remove' type='button' value='Remove variable'></div>
                 </div>`;
         metaDiv.addEventListener('change', function (e) {
             if(document.getElementById('var_choice').value == "int") {
@@ -652,6 +653,7 @@ $(document).ready(function(){
                         <input type='text', name='var_name' placeholder='varint'>
                     </div>
                 `;
+                
             } else if (document.getElementById('var_choice').value == "str") {
                 document.getElementById('meta_options').innerHTML = "String";
             } else if (document.getElementById('var_choice').value == "ts") {
@@ -689,26 +691,19 @@ $(document).ready(function(){
 
     const metaReadout = L.control({ position: 'topright'});
     metaReadout.onAdd = () => {
-        const metaReadDiv = L.DomUtil.create('div', 'meta-wrapper');
+        const metaReadDiv = L.DomUtil.create('div', 'meta-list-wrapper');
         metaReadDiv.innerHTML = `
                 <legend class="slide-legend">Attributes</legend>
                 <div class='slidecontainer slide-long'>
-                    <table>
+                    <table class='metadata-table'>
                         <tr>
                             <th>Variable Name</th>
                             <th>Variable Type</th>
                             <th>Settings</th>
                         </tr>
-                        <tr>
-                            <td>testvar</td>
-                            <td>int</td>
-                            <td>(0,999)</td>
-                        </tr>
                     </table>
-                </div>`;
-        metaReadDiv.addEventListener('change', function (e) {
-
-        });
+                </div>
+        `;
         return metaReadDiv;
     }
 
@@ -728,6 +723,28 @@ $(document).ready(function(){
     metaReadout.addTo(map);
     disableDragging(metaReadout);
 
+    var varNumber = 0
+
+    document.getElementById('var_button_add').addEventListener('click', function (e) {
+            varNumber++;
+            var table = document.getElementsByClassName('metadata-table')[0]
+            var row = table.insertRow(varNumber);
+            var cell1 = row.insertCell(0);
+            var cell2 = row.insertCell(1);
+            var cell3 = row.insertCell(2);
+
+            cell1.innerHTML = "var-name";
+            cell2.innerHTML = "var-type";
+            cell3.innerHTML = "var-settings";
+    });
+
+    document.getElementById('var_button_remove').addEventListener('click', function (e) {
+        if(varNumber > 0) {
+            var table = document.getElementsByClassName('metadata-table')[0];
+            table.deleteRow(varNumber);
+            varNumber--;
+        }
+    });
 
     function readoutMessage(msg, time=5000) {
         document.getElementById('readout-panel').innerHTML = msg;
