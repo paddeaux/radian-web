@@ -125,7 +125,7 @@ p {
     border: none;
 }
 
-input[type=text] {
+.location-search {
     border: 2px solid #b5ff8d;
     border-radius: 12px;
     height: 48px;
@@ -185,6 +185,10 @@ input[type=text] {
     height: 96px;
 }
 
+.slide-long {
+    width: 384px;
+}
+
 .slide-big {
     width: 768px;
     font-size: 20px;
@@ -193,7 +197,7 @@ input[type=text] {
 .slide-legend {font-size: 16px;}
 
 .geninfo-wrapper {
-    transform: translate(60%, 0%)
+    transform: translate(30%, 250%)
 }
 
 .slider {

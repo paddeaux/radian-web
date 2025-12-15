@@ -18,6 +18,7 @@ $(document).ready(function(){
     var lineGroup = L.featureGroup();
 
     var polyArea = 0;
+    var areaLimit = 10 // area limit for Roads distirbution in Km^2
     /*
     polyGroup.on('layeradd', function (e) {
         if (e.layerType == 'rectangle') {
@@ -142,7 +143,7 @@ $(document).ready(function(){
         const barDiv = L.DomUtil.create('div', 'searchbar-wrapper');
     barDiv.innerHTML = `
         <span class="tooltiptext tooltip-search">Specify a location within which to generate data</span>
-        <input type="text" value="Dublin, Ireland" id="location" required>
+        <input class="location-search" type="text" value="Dublin, Ireland" id="location" required>
         `;
         return barDiv;
     };
@@ -349,7 +350,7 @@ $(document).ready(function(){
             </div>`;
         roadDiv.addEventListener('click', () => {
             if(polyGroup.getLayers().length > 0) {
-                if((polyArea / 1000000) < 2) {
+                if((polyArea / 1000000) < areaLimit) {
                     $.ajax({
                         url: "/getroads",
                         type: "POST",
@@ -620,6 +621,96 @@ $(document).ready(function(){
         return downDiv;
     }
 
+    const metaChoice = L.control({ position: 'topright'});
+    metaChoice.onAdd = () => {
+        const metaDiv = L.DomUtil.create('div', 'meta-wrapper');
+        metaDiv.innerHTML = `
+                <legend class="slide-legend">Metadata</legend>
+                <div class='slidecontainer slide-long'>
+                    <label for="variable">Choose a datatype:</label>
+                    <select name="variable" id="var_choice">
+                        <option value="int">Integer</option>
+                        <option value="str">String</option>
+                        <option value="ts">Timestamp</option>
+                        <option value="regex">Regular Expression</option>
+                    </select>
+                    <div id='meta_options'>Test</div>
+                </div>`;
+        metaDiv.addEventListener('change', function (e) {
+            if(document.getElementById('var_choice').value == "int") {
+                document.getElementById('meta_options').innerHTML = `
+                    <div>
+                        <label for="start_int_range">Min</label>
+                        <input type='text' name='start_int_range' placeholder='0' pattern='\d{1,15}'>
+                    </div>
+                    <div>
+                        <label for="end_int_range">Max</label>
+                        <input type='text' name='end_int_range' placeholder='9999' pattern='\d{1,15}'>
+                    </div>
+                    <div>
+                        <label for="var_name">Variable Name</label>
+                        <input type='text', name='var_name' placeholder='varint'>
+                    </div>
+                `;
+            } else if (document.getElementById('var_choice').value == "str") {
+                document.getElementById('meta_options').innerHTML = "String";
+            } else if (document.getElementById('var_choice').value == "ts") {
+                document.getElementById('meta_options').innerHTML = `
+                    <div>
+                        <label for="start_ts_range">Start date</label>
+                        <input type='text' name='start_ts_range' placeholder='2025-01-01 00:00:00' text='2025-01-01 00:00:00' pattern='\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'>
+                    </div>
+                    <div>
+                        <label for="end_ts_range">End date</label>
+                        <input type='text' name='end_ts_range' placeholder='2025-12-30 23:59:59' text='2025-12-30 23:59:59' pattern='\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'>
+                    </div>
+                    <div>
+                        <label for="var_name">Variable Name</label>
+                        <input type='text', name='var_name' placeholder='varts'>
+                    </div>
+                `;
+            } else if (document.getElementById('var_choice').value == "regex") {
+                document.getElementById('meta_options').innerHTML = `
+                    <div>
+                        <label for="regex_var">Regular Expression</label>
+                        <input type='text' name='regex_var' placeholder='\d{3}-\d{4}-[aeiou]{3}'>
+                    </div>
+                    <div>
+                        <label for="var_name">Variable Name</label>
+                        <input type='text', name='var_name' placeholder='varregex'>
+                    </div>
+                `;
+            } else {
+                document.getElementById('meta_options').innerHTML = "none";
+            }
+        });
+        return metaDiv;
+    }
+
+    const metaReadout = L.control({ position: 'topright'});
+    metaReadout.onAdd = () => {
+        const metaReadDiv = L.DomUtil.create('div', 'meta-wrapper');
+        metaReadDiv.innerHTML = `
+                <legend class="slide-legend">Attributes</legend>
+                <div class='slidecontainer slide-long'>
+                    <table>
+                        <tr>
+                            <th>Variable Name</th>
+                            <th>Variable Type</th>
+                            <th>Settings</th>
+                        </tr>
+                        <tr>
+                            <td>testvar</td>
+                            <td>int</td>
+                            <td>(0,999)</td>
+                        </tr>
+                    </table>
+                </div>`;
+        metaReadDiv.addEventListener('change', function (e) {
+
+        });
+        return metaReadDiv;
+    }
 
     //top right stuff
     generateButton.addTo(map);
@@ -628,13 +719,14 @@ $(document).ready(function(){
     disableDragging(generateVoronoi);
     getRoads.addTo(map);
     disableDragging(getRoads);
-    getRoadPoints.addTo(map);
-    disableDragging(getRoadPoints);
     clearButton.addTo(map);
     disableDragging(clearButton);
     downloadButton.addTo(map);
     disableDragging(downloadButton);
-
+    metaChoice.addTo(map);
+    disableDragging(metaChoice);
+    metaReadout.addTo(map);
+    disableDragging(metaReadout);
 
 
     function readoutMessage(msg, time=5000) {
@@ -643,28 +735,12 @@ $(document).ready(function(){
         $('#readout-panel').delay(time).fadeOut(400);
     }
 
- 
-
     function refreshInfo() {
         generationInfo.remove(map);
         generationInfo.addTo(map);
         disableDragging(generationInfo);   
     };
 
-    // blah blah olena is terrible 
-    function infoListeners() {
-        document.getElementById('random_points').addEventListener('input', (evt) => {
-            refreshInfo();
-        });
-        document.getElementById('points_split').addEventListener('input', (evt) => {
-            refreshInfo();
-        });
-        document.getElementById('vor_number').addEventListener('input', (evt) => {
-            refreshInfo();
-        });
-    }
-    
-    //infoListeners()
     let welcomeMessage = `
         Welcome to RADIAN! A Python-based tool for generating synthetic spatial datasets\n
         To start, search for a city/country boundary, then hit the magic wand to generate a dataset!
