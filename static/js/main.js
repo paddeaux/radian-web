@@ -2,9 +2,8 @@ $(document).ready(function(){
     var marker;
     var disableMarker = false;
     var map = L.map('map', {zoomControl: false}).fitWorld();
-    L.control.zoom({
-        position: 'bottomright'
-    }).addTo(map);
+    
+   
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: 
         '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -123,12 +122,14 @@ $(document).ready(function(){
     function disableDragging(controlObj) {
         controlObj.getContainer().addEventListener('mouseover', function () {
             map.dragging.disable();
+            map.doubleClickZoom.disable(); 
             disableMarker = true;
         });
 
         // Re-enable dragging when user's cursor leaves the element
         controlObj.getContainer().addEventListener('mouseout', function () {
             map.dragging.enable();
+            map.doubleClickZoom.enable(); 
             disableMarker = false;
         });
     }
@@ -220,6 +221,9 @@ $(document).ready(function(){
     disableDragging(zoomBoundary);
     map.addControl(drawControl);
 
+    L.control.zoom({
+        position: 'topleft'
+    }).addTo(map);
 
     // ***************************  bottomleft  ************************************
     const ratioSlider = L.control({ position: 'bottomleft'});
@@ -621,7 +625,52 @@ $(document).ready(function(){
         return downDiv;
     }
 
-    const metaChoice = L.control({ position: 'topright'});
+
+    var varSettings = "";
+
+    function updateChoice() {
+        if(document.getElementById('var_choice').value == "int") {
+            document.getElementById('meta_options').innerHTML = `
+                <div>
+                    <label for="start_int_range">Min</label>
+                    <input type='number' id='range_a' name='start_int_range' placeholder='0'>
+                </div>
+                <div>
+                    <label for="end_int_range">Max</label>
+                    <input type='number' id='range_b' name='end_int_range' placeholder='9999'>
+                </div>
+            `;            
+        } else if (document.getElementById('var_choice').value == "str") {
+            document.getElementById('meta_options').innerHTML = `
+                <div>
+                    <label for="str_len">String length</label>
+                    <input type='number' name='str_len' id='str_len' value='1'>
+                </div>
+            `;
+        } else if (document.getElementById('var_choice').value == "ts") {
+            document.getElementById('meta_options').innerHTML = `
+                <div>
+                    <label for="start_ts_range">Start date</label>
+                    <input type='datetime-local' name='start_ts_range' id='range_a' value="2025-01-01T00:00">
+                </div>
+                <div>
+                    <label for="end_ts_range">End date</label>
+                    <input type='datetime-local' name='start_ts_range' id='range_b' value="2025-12-31T23:59">
+                </div>
+            `;
+        } else if (document.getElementById('var_choice').value == "regex") {
+            document.getElementById('meta_options').innerHTML = `
+                <div>
+                    <label for="regex_var">Regular Expression</label>
+                    <input type='text' name='regex_var' placeholder='\d{3}-\d{4}-[aeiou]{3}'>
+                </div>
+            `;
+        } else {
+            document.getElementById('meta_options').innerHTML = "none";
+        }
+    };
+
+    const metaChoice = L.control({ position: 'bottomright'});
     metaChoice.onAdd = () => {
         const metaDiv = L.DomUtil.create('div', 'meta-wrapper');
         metaDiv.innerHTML = `
@@ -634,62 +683,17 @@ $(document).ready(function(){
                         <option value="ts">Timestamp</option>
                         <option value="regex">Regular Expression</option>
                     </select>
-                    <div id='meta_options'>Test</div>
+                    <div id='meta_options'></div>
+                    <div>
+                        <label for="var_name">Variable Name</label>
+                        <input type='text', name='var_name' id='var_name' placeholder='varname'>
+                    </div>
                     <div><input id='var_button_add' type='button' value='Add variable'><input id='var_button_remove' type='button' value='Remove variable'></div>
                 </div>`;
-        metaDiv.addEventListener('change', function (e) {
-            if(document.getElementById('var_choice').value == "int") {
-                document.getElementById('meta_options').innerHTML = `
-                    <div>
-                        <label for="start_int_range">Min</label>
-                        <input type='text' name='start_int_range' placeholder='0' pattern='\d{1,15}'>
-                    </div>
-                    <div>
-                        <label for="end_int_range">Max</label>
-                        <input type='text' name='end_int_range' placeholder='9999' pattern='\d{1,15}'>
-                    </div>
-                    <div>
-                        <label for="var_name">Variable Name</label>
-                        <input type='text', name='var_name' placeholder='varint'>
-                    </div>
-                `;
-                
-            } else if (document.getElementById('var_choice').value == "str") {
-                document.getElementById('meta_options').innerHTML = "String";
-            } else if (document.getElementById('var_choice').value == "ts") {
-                document.getElementById('meta_options').innerHTML = `
-                    <div>
-                        <label for="start_ts_range">Start date</label>
-                        <input type='text' name='start_ts_range' placeholder='2025-01-01 00:00:00' text='2025-01-01 00:00:00' pattern='\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'>
-                    </div>
-                    <div>
-                        <label for="end_ts_range">End date</label>
-                        <input type='text' name='end_ts_range' placeholder='2025-12-30 23:59:59' text='2025-12-30 23:59:59' pattern='\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}'>
-                    </div>
-                    <div>
-                        <label for="var_name">Variable Name</label>
-                        <input type='text', name='var_name' placeholder='varts'>
-                    </div>
-                `;
-            } else if (document.getElementById('var_choice').value == "regex") {
-                document.getElementById('meta_options').innerHTML = `
-                    <div>
-                        <label for="regex_var">Regular Expression</label>
-                        <input type='text' name='regex_var' placeholder='\d{3}-\d{4}-[aeiou]{3}'>
-                    </div>
-                    <div>
-                        <label for="var_name">Variable Name</label>
-                        <input type='text', name='var_name' placeholder='varregex'>
-                    </div>
-                `;
-            } else {
-                document.getElementById('meta_options').innerHTML = "none";
-            }
-        });
         return metaDiv;
     }
 
-    const metaReadout = L.control({ position: 'topright'});
+    const metaReadout = L.control({ position: 'bottomright'});
     metaReadout.onAdd = () => {
         const metaReadDiv = L.DomUtil.create('div', 'meta-list-wrapper');
         metaReadDiv.innerHTML = `
@@ -720,6 +724,12 @@ $(document).ready(function(){
     disableDragging(downloadButton);
     metaChoice.addTo(map);
     disableDragging(metaChoice);
+    
+    document.getElementById('var_choice').addEventListener('change', function (e) {
+        updateChoice();
+    });
+    updateChoice();
+
     metaReadout.addTo(map);
     disableDragging(metaReadout);
 
@@ -729,15 +739,22 @@ $(document).ready(function(){
             varNumber++;
             var table = document.getElementsByClassName('metadata-table')[0]
             var row = table.insertRow(varNumber);
-            var cell1 = row.insertCell(0);
-            var cell2 = row.insertCell(1);
-            var cell3 = row.insertCell(2);
-
-            cell1.innerHTML = "var-name";
-            cell2.innerHTML = "var-type";
-            cell3.innerHTML = "var-settings";
+            row.class = 'metaRow'
+            var varChoice = document.getElementById('var_choice').value;
+            
+            if(varChoice == 'int' || varChoice == 'ts') {
+                varSettings = "(" + document.getElementById('range_a').value + ", " + document.getElementById('range_b').value + ")";
+            } else {
+                varSettings = "none";
+            }
+            
+            row.innerHTML = `
+                <td>${document.getElementById('var_name').value}</td>
+                <td>${document.getElementById('var_choice').value}</td>
+                <td>${varSettings}</td>
+            `;
     });
-
+    
     document.getElementById('var_button_remove').addEventListener('click', function (e) {
         if(varNumber > 0) {
             var table = document.getElementsByClassName('metadata-table')[0];
