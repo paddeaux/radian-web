@@ -308,16 +308,14 @@ $(document).ready(function(){
                     <th>Secondary Points</th>
                     <th>Gen. Type</th>
                     <th>No. Voronoi</th>
-                    <th>Point Split</th>
                     <th>Boundary Area</th>
                 </tr>
                 <tr>
                     <td>${(pointGroup.getLayers().length < 1) ? 0 : pointGroup.getLayers()[0].getLayers().length}</td>
-                    <td>${(pointGroup.getLayers().length < 1) ? 0 : (pointGroup.getLayers()[0].getLayers().length) * (mydict['points_split']/100)}
-                    <td>${(pointGroup.getLayers().length < 1) ? 0 : (pointGroup.getLayers()[0].getLayers().length) * 1-(mydict['points_split']/100)}
+                    <td>${(pointGroup.getLayers().length < 1) ? 0 : Math.round((pointGroup.getLayers()[0].getLayers().length) * (mydict['points_split']/100))}
+                    <td>${(pointGroup.getLayers().length < 1) ? 0 : pointGroup.getLayers()[0].getLayers().length - Math.round((pointGroup.getLayers()[0].getLayers().length) * (mydict['points_split']/100))}
                     <td>${mydict['points_split']}% primary, ${100 - mydict['points_split']}% secondary </td>
                     <td>${mydict['gen_type']}</td>
-                    <td>${vorGroup.getLayers().length}</td>
                     <td>${(polyArea / 1000000).toFixed(2)}km2</td>
                 </tr>
             </table>
