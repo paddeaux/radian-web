@@ -16,6 +16,6 @@ RADIAN web expands upon the functionality of the original RADIAN by packaging it
 * Datasets can be downloaded at the click of a button.
 
 
-## How does RADIAN-Web differ from ordinary RADIAN?
+### How does RADIAN-Web differ from ordinary RADIAN?
 The obvious difference is of course that RADIAN-web operates within the users browser, without any need to install any software or dependencies on a local machine. 
 Given one of the primary use cases for RADIAN being in educational and classroom settings, RADIAN-web provides a great leap in usability of the software as now it can be distributed to students (or educators) simply by visiting the link via a browser.
