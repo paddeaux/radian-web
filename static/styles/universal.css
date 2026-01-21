@@ -200,8 +200,13 @@ p {
 
 .slide-legend {font-size: 16px;}
 
+.gen-info {
+    width: 768px;
+    font-size: 16px;
+}
+
 .geninfo-wrapper {
-    transform: translate(30%, 250%)
+    transform: translate(30%, 290%)
 }
 
 .slider {

@@ -224,15 +224,17 @@ $(document).ready(function(){
     L.control.zoom({
         position: 'topleft'
     }).addTo(map);
-
+    
+    
     // ***************************  bottomleft  ************************************
+    
     const ratioSlider = L.control({ position: 'bottomleft'});
     ratioSlider.onAdd = () => {
         const ratioDiv = L.DomUtil.create('div', 'ratio-wrapper');
         ratioDiv.innerHTML = `
-                        <legend class="slide-legend">Points Ratio</legend>
+                <legend class="slide-legend">Points Ratio</legend>
                 <div class='slidecontainer'>
-                    <input type="range" class='slider' value="50" id="points_split" name="points_split" min="0" max="100" step="1" oninput="this.nextElementSibling.value = this.value"/>
+                    <input type="range" class='slider inputs' value="50" id="points_split" name="points_split" min="0" max="100" step="1" oninput="this.nextElementSibling.value = this.value"/>
                     <output class='param-text'>50</output>%
                 </div>`;
         return ratioDiv;
@@ -244,7 +246,7 @@ $(document).ready(function(){
         pointDiv.innerHTML = `
             <legend class="slide-legend">Number of Points</legend>
                 <div class='slidecontainer slide-tall'>
-                    <input type="range" class='slider' value="250" id="random_points" name="random_points" min="0" max="5000" step="50" oninput="this.nextElementSibling.value = this.value"/>
+                    <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="5000" step="50" oninput="this.nextElementSibling.value = this.value;"/>
                     <output class='param-text'>250</output>
                 </div>`;
         return pointDiv;
@@ -257,14 +259,14 @@ $(document).ready(function(){
             <legend class="slide-legend">Points Distribution:</legend>
             <div class='slidecontainer'>
             <div>   
-                <input type="radio" class='radio' id="gen_uniform" name="distribution" value="uniform" checked />Uniform
+                <input type="radio" class='radio inputs' id="gen_uniform" name="distribution" value="uniform" checked />Uniform
             </div>
                 <div>
-                    <input type="radio" class='radio' id="gen_gaussian" name="distribution" value="gaussian" />
+                    <input type="radio" class='radio inputs' id="gen_gaussian" name="distribution" value="gaussian" />
                     <label for="gen_gaussian">Gaussian</label>
                 </div>
                 <div>
-                    <input type="radio" class='radio' id="gen_roads" name="distribution" value="roads" />
+                    <input type="radio" class='radio inputs' id="gen_roads" name="distribution" value="roads" />
                     <label for="gen_roads">Roads</label>
                 </div>
             </div>`;
@@ -277,7 +279,7 @@ $(document).ready(function(){
         vorDiv.innerHTML = `
                 <legend class="slide-legend">Voronoi Generation</legend>
                 <div class='slidecontainer'>
-                    <input type="range" class='slider' value="3" id="vor_number" name="vor_number" min="3" max="64" step="1" oninput="this.nextElementSibling.value = this.value;"/>
+                    <input type="range" class='slider inputs' value="3" id="vor_number" name="vor_number" min="3" max="64" step="1" oninput="this.nextElementSibling.value = this.value;"/>
                     <output class='param-text'>3</output>
                 </div>`;
         return vorDiv;
@@ -293,37 +295,6 @@ $(document).ready(function(){
         return readoutDiv;
     }; 
 
-    // Readout stuff
-    const generationInfo = L.control({ position: 'bottomleft'});
-    generationInfo.onAdd = () => {
-        const infoDiv = L.DomUtil.create('div', 'geninfo-wrapper');
-        var mydict = getParams()
-        infoDiv.innerHTML = `
-            <legend class='slide-legend'>Layer Info</legend>
-            <div class='slidecontainer slide-big' id='gen-info'>
-            <table>
-                <tr>
-                    <th>Total Points</th>
-                    <th>Primary Points</th>
-                    <th>Secondary Points</th>
-                    <th>Gen. Type</th>
-                    <th>No. Voronoi</th>
-                    <th>Boundary Area</th>
-                </tr>
-                <tr>
-                    <td>${(pointGroup.getLayers().length < 1) ? 0 : pointGroup.getLayers()[0].getLayers().length}</td>
-                    <td>${(pointGroup.getLayers().length < 1) ? 0 : Math.round((pointGroup.getLayers()[0].getLayers().length) * (mydict['points_split']/100))}
-                    <td>${(pointGroup.getLayers().length < 1) ? 0 : pointGroup.getLayers()[0].getLayers().length - Math.round((pointGroup.getLayers()[0].getLayers().length) * (mydict['points_split']/100))}
-                    <td>${mydict['points_split']}% primary, ${100 - mydict['points_split']}% secondary </td>
-                    <td>${mydict['gen_type']}</td>
-                    <td>${(polyArea / 1000000).toFixed(2)}km2</td>
-                </tr>
-            </table>
-            </div>`;
-        return infoDiv;
-    };
-
-
     //bottom left stuff
     voronoiSlider.addTo(map);
     disableDragging(voronoiSlider);
@@ -333,12 +304,60 @@ $(document).ready(function(){
     disableDragging(pointSlider);
     pointChoice.addTo(map);
     disableDragging(pointChoice);
-    generationInfo.addTo(map);
-    disableDragging(generationInfo); 
+
 
     readoutWindow.addTo(map);
-    disableDragging(readoutWindow);  
+    disableDragging(readoutWindow); 
 
+    // ****************** Output Readout *************************
+        // Readout stuff
+    const generationInfo = L.control({ position: 'bottomleft'});
+    generationInfo.onAdd = () => {
+        const infoDiv = L.DomUtil.create('div', 'geninfo-wrapper');
+        var mydict = getParams()
+        infoDiv.innerHTML = `
+            <legend class='slide-legend'>Layer Info</legend>
+            <div class='slidecontainer gen-info' id='gen-info'>
+            <table>
+                <tr>
+                    <th>Total Points</th>
+                    <th>Primary Points</th>
+                    <th>Secondary Points</th>
+                    <th>Points Split</th>
+                    <th>No. Voronoi</th>
+                    <th>Avg. Points per Voronoi<th>
+                    <th>Boundary Area</th>
+                </tr>
+                <tr>
+                    <td>${document.getElementById('random_points').value}</td>
+                    <td>${Math.round(document.getElementById('random_points').value * (document.getElementById('points_split').value/100))}
+                    <td>${document.getElementById('random_points').value - (Math.round(document.getElementById('random_points').value * (document.getElementById('points_split').value/100)))}
+                    <td>${document.getElementById('points_split').value}% primary, ${100 - document.getElementById('points_split').value}% secondary </td>
+                    <td>${document.getElementById('vor_number').value}</td>
+                    <td>${Math.ceil((document.getElementById('random_points').value - (Math.round(document.getElementById('random_points').value * (document.getElementById('points_split').value/100)))) / (document.getElementById('vor_number').value))}</td>
+                    <td>${(polyArea / 1000000).toFixed(2)}km2</td>
+                </tr>
+            </table>
+            </div>`;
+        return infoDiv;
+    };
+    //(pointGroup.getLayers().length < 1) ? 0 : pointGroup.getLayers()[0].getLayers().length
+    function refreshInfo() {
+        generationInfo.remove(map);
+        generationInfo.addTo(map);
+        disableDragging(generationInfo);   
+    };
+
+    var webinputs = document.getElementsByClassName('inputs');
+    console.log(webinputs)
+    for(var i = 0; i < webinputs.length; i++) {
+        webinputs[i].addEventListener('input', function (e) {
+            refreshInfo();
+        })
+    };
+
+    generationInfo.addTo(map);
+    disableDragging(generationInfo); 
 
     // ************************* topright **********************************
 
@@ -766,12 +785,6 @@ $(document).ready(function(){
         $('#readout-panel').hide().fadeIn(400);
         $('#readout-panel').delay(time).fadeOut(400);
     }
-
-    function refreshInfo() {
-        generationInfo.remove(map);
-        generationInfo.addTo(map);
-        disableDragging(generationInfo);   
-    };
 
     let welcomeMessage = `
         Welcome to RADIAN! A Python-based tool for generating synthetic spatial datasets\n

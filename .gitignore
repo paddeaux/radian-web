@@ -212,4 +212,7 @@ boundaries/
 # files
 dcc_ameneties.geojson
 dcc_roads_osm.geojson
-ghent.geojson
+ghent_4326.geojson
+bbox.geojson
+mockaroo_spatial.geojson
+mockaroo.csv
