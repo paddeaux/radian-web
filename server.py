@@ -7,7 +7,8 @@ import pandas as pd
 import osmnx as ox
 import random
 
-from radian import points_uniform, gaussian_moving_centre, gaussian_centre, get_roads_from_poly, road_distribution
+from radian import points_uniform, gaussian_moving_centre, gaussian_centre
+from radian import get_roads_from_poly, road_distribution, generate_vars
 
 from shapely import Polygon
 from flask import Flask, request, jsonify, render_template
@@ -100,7 +101,17 @@ def voronoi():
         voronoi_gdf = radian.voronoi_gen(gdf, centroid, vor_number)
     print(voronoi_gdf)
     return voronoi_gdf.to_json()
-        
+
+@app.route('/metadata', methods=['GET', 'POST'])
+def metadata():
+    points = json.loads(request.data)
+    gdf = gpd.GeoDataFrame.from_features(points['data']['features'])    
+    metaDict = points['params']
+    for i, x in enumerate(metaDict):
+        if x['type'] == 'str' or x['type'] == 'int':
+            metaDict[i]['params'] = [int(n) for n in x['params']]
+    metadata_gdf = generate_vars(gdf, metaDict)
+    return metadata_gdf.to_json() 
 
 @app.route('/save', methods=['GET', 'POST'])
 def save():

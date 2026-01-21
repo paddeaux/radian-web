@@ -18,6 +18,8 @@ $(document).ready(function(){
 
     var polyArea = 0;
     var areaLimit = 10 // area limit for Roads distirbution in Km^2
+
+    var metaDict = [];
     /*
     polyGroup.on('layeradd', function (e) {
         if (e.layerType == 'rectangle') {
@@ -679,7 +681,7 @@ $(document).ready(function(){
             document.getElementById('meta_options').innerHTML = `
                 <div>
                     <label for="regex_var">Regular Expression</label>
-                    <input type='text' name='regex_var' placeholder='\d{3}-\d{4}-[aeiou]{3}'>
+                    <input type='text' id='regex_var' name='regex_var' placeholder='\\d{3}-\\d{4}-[aeiou]{3}'>
                 </div>
             `;
         } else {
@@ -706,6 +708,7 @@ $(document).ready(function(){
                         <input type='text', name='var_name' id='var_name' placeholder='varname'>
                     </div>
                     <div><input id='var_button_add' type='button' value='Add variable'><input id='var_button_remove' type='button' value='Remove variable'></div>
+                    <div><input id='button_gen_metadata' type='button' value='Generate metadata' disabled></div>
                 </div>`;
         return metaDiv;
     }
@@ -751,34 +754,86 @@ $(document).ready(function(){
     disableDragging(metaReadout);
 
     var varNumber = 0
+    // sample listing for metadata attributes
 
     document.getElementById('var_button_add').addEventListener('click', function (e) {
-            varNumber++;
-            var table = document.getElementsByClassName('metadata-table')[0]
-            var row = table.insertRow(varNumber);
-            row.class = 'metaRow'
-            var varChoice = document.getElementById('var_choice').value;
-            
-            if(varChoice == 'int' || varChoice == 'ts') {
-                varSettings = "(" + document.getElementById('range_a').value + ", " + document.getElementById('range_b').value + ")";
-            } else {
-                varSettings = "none";
-            }
-            
-            row.innerHTML = `
-                <td>${document.getElementById('var_name').value}</td>
-                <td>${document.getElementById('var_choice').value}</td>
-                <td>${varSettings}</td>
-            `;
+        varNumber++;
+        var table = document.getElementsByClassName('metadata-table')[0]
+        var row = table.insertRow(varNumber);
+        row.class = 'metaRow'
+        var varChoice = document.getElementById('var_choice').value;
+        var varName = document.getElementById('var_name').value
+        var varSettings = [];
+
+        if(varChoice == 'int' || varChoice == 'ts') {
+            varSettings.push(document.getElementById('range_a').value.replace('T', ' '));
+            varSettings.push(document.getElementById('range_b').value.replace('T', ' '));
+        } else if(varChoice == 'str') {
+            varSettings.push(document.getElementById('str_len').value);
+        } else if(varChoice == 'regex') {
+            varSettings.push(document.getElementById('regex_var').value);
+        }
+        
+        metaCol = {type: varChoice, name: varName, params: varSettings}
+        metaDict.push(metaCol);
+        console.log(metaDict);
+        row.innerHTML = `
+            <td>${varName}</td>
+            <td>${varChoice}</td>
+            <td>${"(" + varSettings + ")"}</td>
+        `;
+        document.getElementById('button_gen_metadata').disabled = false;
     });
     
     document.getElementById('var_button_remove').addEventListener('click', function (e) {
-        if(varNumber > 0) {
+        if(varNumber > 0 ) {
             var table = document.getElementsByClassName('metadata-table')[0];
             table.deleteRow(varNumber);
             varNumber--;
+            metaDict.pop();
+            console.log(metaDict);
+            if(varNumber == 0) {
+                document.getElementById('button_gen_metadata').disabled = true;
+            }
         }
     });
+
+    document.getElementById('button_gen_metadata').addEventListener('click', function (e) {
+        if(pointGroup.getLayers().length > 0) {
+            if(varNumber > 0) {
+                $.ajax({
+                    url: "/metadata",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        'data' : pointGroup.toGeoJSON(),
+                        'params' : metaDict
+                    }),
+                        success: function(response){
+                            if (pointGroup.getLayers().length > 0) {
+                                pointGroup.clearLayers();
+                            }
+                            console.log("plotting points", JSON.parse(response['points']))
+                            L.geoJSON(JSON.parse(response['points']), {
+                                pointToLayer: function (feature, latlng) {
+                                    return L.circleMarker(feature, latlng, geojsonMarkerOptions);
+                                }
+                            }).addTo(pointGroup)
+                            console.log("added points with metadata")
+                        },
+                        error: function(response){
+                            console.log("we dun goofed")
+                        }
+                });
+            }
+        } else {
+            errMsg = "A dataset must be generated first before metadata can be added."
+            console.log(errMsg);
+            readoutMessage(errMsg);
+        }
+        
+    });
+
 
     function readoutMessage(msg, time=5000) {
         document.getElementById('readout-panel').innerHTML = msg;
