@@ -98,6 +98,7 @@ $(document).ready(function(){
         opacity: 1,
         fillOpacity: 0.8
     };
+
     
     function getParams() {
         var gen_type;
@@ -573,6 +574,7 @@ $(document).ready(function(){
                                 }
                                 L.geoJSON(JSON.parse(response['points']), {
                                     pointToLayer: function (feature, latlng) {
+                                        console.log("normalpoint:", feature, "latlng:", latlng);
                                         return L.circleMarker(latlng, geojsonMarkerOptions);
                                     }
                                 }).addTo(pointGroup)
@@ -798,6 +800,8 @@ $(document).ready(function(){
         }
     });
 
+
+    
     document.getElementById('button_gen_metadata').addEventListener('click', function (e) {
         if(pointGroup.getLayers().length > 0) {
             if(varNumber > 0) {
@@ -813,12 +817,18 @@ $(document).ready(function(){
                             if (pointGroup.getLayers().length > 0) {
                                 pointGroup.clearLayers();
                             }
-                            console.log("plotting points", JSON.parse(response['points']))
                             L.geoJSON(JSON.parse(response['points']), {
                                 pointToLayer: function (feature, latlng) {
-                                    return L.circleMarker(feature, latlng, geojsonMarkerOptions);
+                                    console.log("metafeature:", feature, "latlng:", latlng);
+                                    return L.circleMarker(latlng, geojsonMarkerOptions);
                                 }
-                            }).addTo(pointGroup)
+                                //onEachFeature: function(feature, latlng) {
+                                //    console.log("metapoint:", feature);
+                                //    var dot = L.circleMarker(feature, latlng, geojsonMarkerOptions);
+                                //    console.log("wee:", dot);
+                                //    return dot;
+                                //}
+                            }).addTo(pointGroup);
                             console.log("added points with metadata")
                         },
                         error: function(response){
@@ -834,6 +844,25 @@ $(document).ready(function(){
         
     });
 
+    var layerPopup;
+    pointGroup.on('mouseover', function(e){
+        var pointMeta = e.layer.feature.properties
+        console.log(pointMeta)
+        var coordinates = e.layer.feature.geometry.coordinates;
+        var swapped_coordinates = [coordinates[1], coordinates[0]];  //Swap Lat and Lng
+        if (map) {
+        layerPopup = L.popup()
+            .setLatLng(swapped_coordinates)
+            .setContent(`<div>Point data: ${pointMeta[0]}}</div>`)
+                .openOn(map);
+        }
+    });
+    pointGroup.on('mouseout', function (e) {
+        if (layerPopup && map) {
+            map.closePopup(layerPopup);
+            layerPopup = null;
+        }
+    });
 
     function readoutMessage(msg, time=5000) {
         document.getElementById('readout-panel').innerHTML = msg;

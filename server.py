@@ -111,7 +111,8 @@ def metadata():
         if x['type'] == 'str' or x['type'] == 'int':
             metaDict[i]['params'] = [int(n) for n in x['params']]
     metadata_gdf = generate_vars(gdf, metaDict)
-    return metadata_gdf.to_json() 
+    print(metadata_gdf.head())
+    return {'points': metadata_gdf.to_json() }
 
 @app.route('/save', methods=['GET', 'POST'])
 def save():
