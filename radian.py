@@ -506,7 +506,7 @@ def distribute_nans(df, percent=[5,10]):
     return df
 
 
-def generate_vars(gdf, rand_var_dict):
+def generate_vars(gdf, rand_var_dict, web=False):
     for var in rand_var_dict:
         match var['type']:
             case 'int':
@@ -520,7 +520,10 @@ def generate_vars(gdf, rand_var_dict):
                 end = pd.to_datetime(var['params'][1])
                 ts_start = start.value//10**9
                 ts_end = end.value//10**9
-                gdf[f"{var['name']}"] = list(pd.to_datetime(np.random.randint(ts_start, ts_end, len(gdf.index)), unit='s'))
+                if web:
+                    gdf[f"{var['name']}"] = list(np.random.randint(ts_start, ts_end, len(gdf.index)))
+                else:
+                    gdf[f"{var['name']}"] = list(pd.to_datetime(np.random.randint(ts_start, ts_end, len(gdf.index)), unit='s'))
             case _:
                 return
     return gdf

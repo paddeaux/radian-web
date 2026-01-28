@@ -800,7 +800,11 @@ $(document).ready(function(){
         }
     });
 
-
+    function toDateTime(secs) {
+        var t = new Date(1970, 0, 1); // Epoch
+        t.setSeconds(secs);
+        return t;
+    }
     
     document.getElementById('button_gen_metadata').addEventListener('click', function (e) {
         if(pointGroup.getLayers().length > 0) {
@@ -817,17 +821,16 @@ $(document).ready(function(){
                             if (pointGroup.getLayers().length > 0) {
                                 pointGroup.clearLayers();
                             }
+                            console.log("metaDict:", metaDict);
+                            // check if the metadata includes a timestamp
+                            if (Object.values(metaDict).indexOf('ts') > -1) {
+                                console.log("has ts");
+                            }
                             L.geoJSON(JSON.parse(response['points']), {
                                 pointToLayer: function (feature, latlng) {
-                                    console.log("metafeature:", feature, "latlng:", latlng);
+                                    //console.log(feature.properties)
                                     return L.circleMarker(latlng, geojsonMarkerOptions);
                                 }
-                                //onEachFeature: function(feature, latlng) {
-                                //    console.log("metapoint:", feature);
-                                //    var dot = L.circleMarker(feature, latlng, geojsonMarkerOptions);
-                                //    console.log("wee:", dot);
-                                //    return dot;
-                                //}
                             }).addTo(pointGroup);
                             console.log("added points with metadata")
                         },
@@ -844,17 +847,31 @@ $(document).ready(function(){
         
     });
 
+    function formatMeta(dict) {
+        var i = 0;
+        var metaTable = document.createElement("table");
+        var metaHead = metaTable.insertRow(0);
+        var metaRow = metaTable.insertRow(1);
+        for (var key in dict) {
+            var cellHead = metaHead.insertCell(i);
+            cellHead.innerHTML = `${key}`;
+            var cell = metaRow.insertCell(i++);
+            cell.innerHTML = `${dict[key]}`
+        }
+        return metaTable;
+    };
+
     var layerPopup;
     pointGroup.on('mouseover', function(e){
         var pointMeta = e.layer.feature.properties
-        console.log(pointMeta)
+        console.log(JSON.stringify(pointMeta))
         var coordinates = e.layer.feature.geometry.coordinates;
         var swapped_coordinates = [coordinates[1], coordinates[0]];  //Swap Lat and Lng
         if (map) {
-        layerPopup = L.popup()
+            layerPopup = L.popup()
             .setLatLng(swapped_coordinates)
-            .setContent(`<div>Point data: ${pointMeta[0]}}</div>`)
-                .openOn(map);
+            .setContent(formatMeta(pointMeta))
+                .openOn(map);            
         }
     });
     pointGroup.on('mouseout', function (e) {
