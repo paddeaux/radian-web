@@ -514,7 +514,7 @@ def generate_vars(gdf, rand_var_dict, web=False):
             case 'str':
                 gdf[f"{var['name']}"] = [''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(var['params'][0])) for i in range(len(gdf.index))]
             case 'regex':
-                gdf[f"{var['name']}"] = [exrex.getone(var['params']) for i in range(len(gdf.index))]
+                gdf[f"{var['name']}"] = [exrex.getone(var['params'][0]) for i in range(len(gdf.index))]
             case 'ts':
                 start = pd.to_datetime(var['params'][0])
                 end = pd.to_datetime(var['params'][1])

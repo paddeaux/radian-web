@@ -574,7 +574,6 @@ $(document).ready(function(){
                                 }
                                 L.geoJSON(JSON.parse(response['points']), {
                                     pointToLayer: function (feature, latlng) {
-                                        console.log("normalpoint:", feature, "latlng:", latlng);
                                         return L.circleMarker(latlng, geojsonMarkerOptions);
                                     }
                                 }).addTo(pointGroup)
@@ -821,12 +820,29 @@ $(document).ready(function(){
                             if (pointGroup.getLayers().length > 0) {
                                 pointGroup.clearLayers();
                             }
-                            console.log("metaDict:", metaDict);
-                            // check if the metadata includes a timestamp
-                            if (Object.values(metaDict).indexOf('ts') > -1) {
-                                console.log("has ts");
+                            // get indexs of the timestamp variables
+                            var tsIndex = []
+                            for (var col of metaDict) {
+                                if (col['type'] == 'ts') {
+                                    tsIndex.push(col['name'])
+                                }
                             }
-                            L.geoJSON(JSON.parse(response['points']), {
+                            var dataDict = JSON.parse(response['points'])
+                            
+                            //for (var row of dataDict['features']) {
+                            //    for (var index of tsIndex) {
+                            //        dataDict['features'][row]['properties'][index] = toDateTime(row['properties'][index]);
+                            //    }
+                            //
+
+                            for (let i in dataDict['features']) {
+                                for (var index of tsIndex) {
+                                    dataDict['features'][i]['properties'][index] = toDateTime(dataDict['features'][i]['properties'][index])
+                                }
+                            }
+
+                            console.log(dataDict['features'][0]['properties'])                            
+                            L.geoJSON(dataDict, {
                                 pointToLayer: function (feature, latlng) {
                                     //console.log(feature.properties)
                                     return L.circleMarker(latlng, geojsonMarkerOptions);
