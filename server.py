@@ -63,11 +63,16 @@ def process():
     if vor_number > 0 and poly['voronoi'] != None:
         points_out = pd.concat([points_gdf, vor_points_gdf], ignore_index=True)
         #return points_out.sample(len(points_out)).reset_index(drop=True).to_json()
+        points_out['dist'] = shapely.distance(centroid, points_out.geometry)
+        points_out['dist']= 1 - (points_out['dist']-points_out['dist'].min())/(points_out['dist'].max()-points_out['dist'].min())
         return {
             'points' : points_out.sample(len(points_out)).reset_index(drop=True).to_json(),
             'voronoi': voronoi.to_json()
         }
     else:
+        points_gdf['dist'] = shapely.distance(centroid, points_gdf.geometry)
+        # (df-df.min())/(df.max()-df.min())
+        points_gdf['dist']= 1 - (points_gdf['dist']-points_gdf['dist'].min())/(points_gdf['dist'].max()-points_gdf['dist'].min())
         return {'points':points_gdf.to_json()}
 
 
