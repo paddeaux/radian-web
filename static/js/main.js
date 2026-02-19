@@ -111,7 +111,6 @@ $(document).ready(function(){
             gen_type = 0
         }
 
-        console.log("testing:", +document.getElementById("points_split").value)
         return {
             "num_points" : +document.getElementById("random_points").value,
             "gen_type" : +gen_type,
@@ -249,7 +248,7 @@ $(document).ready(function(){
         pointDiv.innerHTML = `
             <legend class="slide-legend">Number of Points</legend>
                 <div class='slidecontainer slide-tall'>
-                    <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="5000" step="50" oninput="this.nextElementSibling.value = this.value;"/>
+                    <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="50000" step="50" oninput="this.nextElementSibling.value = this.value;"/>
                     <output class='param-text'>250</output>
                 </div>`;
         return pointDiv;
@@ -363,7 +362,8 @@ $(document).ready(function(){
     disableDragging(generationInfo); 
 
     // ************************* topright **********************************
-
+    var roadTimeStart;
+    var roadTimeEnd;
     const getRoads = L.control({ position: 'topright'});
     getRoads.onAdd = () => {
         const roadDiv = L.DomUtil.create('div', 'getroad-wrapper');
@@ -373,6 +373,8 @@ $(document).ready(function(){
                 <button class='button btn-icon' title='Retrieve road network'><i class='fa-solid fa-road'></i></button>
             </div>`;
         roadDiv.addEventListener('click', () => {
+            roadTimeStart = Date.now();
+
             if(polyGroup.getLayers().length > 0) {
                 if((polyArea / 1000000) < areaLimit) {
                     $.ajax({
@@ -387,6 +389,8 @@ $(document).ready(function(){
                                 console.log("roads", JSON.parse(response['roads']))
                                 lineGroup.clearLayers()
                                 L.geoJSON(JSON.parse(response['roads'])).addTo(lineGroup)
+                                roadTimeEnd = Date.now() - roadTimeStart;
+                                console.log(`Road generation - Time taken = ${roadTimeEnd / 1000} seconds`);
                             },
                             error: function(response){
                                 console.log("we dun goofed")
@@ -404,6 +408,8 @@ $(document).ready(function(){
         return roadDiv;
     }
 
+    var roadPointTimeStart;
+    var roadPointTimeEnd;
     const getRoadPoints = L.control({ position: 'topright'});
     getRoadPoints.onAdd = () => {
         const roadDiv = L.DomUtil.create('div', 'getroadpoints-wrapper');
@@ -413,6 +419,7 @@ $(document).ready(function(){
                 <button class='button btn-icon' title='Get road points'><i class='fa-solid fa-road'></i>+</button>
             </div>`;
         roadDiv.addEventListener('click', () => {
+            roadPointTimeStart = Date.now();
             if(getParams()['bound_type'] == 1) {
                 $.ajax({
                     url: "/roadpoints",
@@ -432,7 +439,10 @@ $(document).ready(function(){
                                     return L.circleMarker(latlng, geojsonMarkerOptions);
                                 }
                             }).addTo(pointGroup)
-                            console.log("added points")
+                            roadPointTimeEnd = Date.now() - roadPointTimeStart;
+                            console.log(`Road Point generation - Time taken = ${roadPointTimeEnd / 1000} seconds`);
+                            console.log("added points", roadPointTimeEnd / 1000)
+                            
                         },
                         error: function(response){
                             console.log("we dun goofed")
@@ -497,6 +507,8 @@ $(document).ready(function(){
         return genVorDiv;
     };
 
+    var pointTimeStart;
+    var pointTimeEnd;
     const generateButton = L.control({ position: 'topright' });
     generateButton.onAdd = () => {
         const genDiv = L.DomUtil.create('div', 'genbutton-wrapper');
@@ -507,6 +519,8 @@ $(document).ready(function(){
             </div>
                 `;
         genDiv.addEventListener('click', () => {
+            pointTimeStart = Date.now();
+
             console.log("number of polys is=", polyGroup.getLayers().length);
             if(polyGroup.getLayers().length == 0) {
                 readoutMessage("Please load/draw an area boundary before generating a dataset.");
@@ -535,6 +549,8 @@ $(document).ready(function(){
                                         }
                                     }).addTo(pointGroup)
                                     console.log("added points")
+                                    pointTimeEnd = Date.now() - pointTimeStart;
+                                    console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
                                 },
                                 error: function(response){
                                     console.log("we dun goofed")
@@ -588,9 +604,12 @@ $(document).ready(function(){
                                 document.getElementById('btn-generate').disabled = false;
                                 document.getElementById('btn-download').disabled = false;
                                 readoutMessage(getParams());
+                                pointTimeEnd = Date.now() - pointTimeStart;
+                                console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
                             }
                     });
                 } 
+
             } else {
                 console.log("no points value.");
                 readoutMessage("Please select a points value with the points slider.");
@@ -804,10 +823,13 @@ $(document).ready(function(){
         t.setSeconds(secs);
         return t;
     }
-    
+    var metaDataTimeStart;
+    var metaDataTimeEnd;
     document.getElementById('button_gen_metadata').addEventListener('click', function (e) {
+        metaDataTimeStart = Date.now();
         if(pointGroup.getLayers().length > 0) {
             if(varNumber > 0) {
+                
                 $.ajax({
                     url: "/metadata",
                     type: "POST",
@@ -849,6 +871,8 @@ $(document).ready(function(){
                                 }
                             }).addTo(pointGroup);
                             console.log("added points with metadata")
+                            metaDataTimeEnd = Date.now() - metaDataTimeStart;
+                            console.log(`Metadata generation - Time taken = ${metaDataTimeEnd / 1000} seconds`)
                         },
                         error: function(response){
                             console.log("we dun goofed")
@@ -880,7 +904,6 @@ $(document).ready(function(){
     var layerPopup;
     pointGroup.on('mouseover', function(e){
         var pointMeta = e.layer.feature.properties
-        console.log(JSON.stringify(pointMeta))
         var coordinates = e.layer.feature.geometry.coordinates;
         var swapped_coordinates = [coordinates[1], coordinates[0]];  //Swap Lat and Lng
         if (map) {
