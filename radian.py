@@ -34,7 +34,6 @@ import shapely
 from shapely.geometry import Point
 from shapely.geometry import box
 from geovoronoi import voronoi_regions_from_coords, points_to_coords
-
 # This function takes in a Shapely Polygon object and returns a GeoDataFrame consisting of Voronoi-based buffers
 # centred around either the true centroid of the original Polygon, or around a randomly generated "moving centroid"
 # The function has three different forms of generation:
