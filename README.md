@@ -4,7 +4,7 @@ RADIAN [https://doi.org/10.1080/15230406.2024.2377981] is a Python-based tool fo
 
 RADIAN-Web [paper awaiting review] is a web-based tool which implements (and improves!) all the existing functionalities of RADIAN, as well as enhancing it's usability and efficiency. 
 
-![Screentshot of Radian-Web](RadianWeb.png)
+![Screentshot of Radian-Web](radianWeb.png)
 
 ## What does RADIAN-Web do?
 RADIAN web expands upon the functionality of the original RADIAN by packaging it in a web-based format. The JavaScript/Leaflet UI allows for a much clearer picture of the generation process and resulting outputs. It addition it eschews the command line running of RADIAN with an intuitive UI which allows for quick generation (and regeneration) of the desired dataset.
