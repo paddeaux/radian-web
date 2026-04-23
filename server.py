@@ -66,14 +66,14 @@ def process():
         points_out['dist'] = shapely.distance(centroid, points_out.geometry)
         points_out['dist']= 1 - (points_out['dist']-points_out['dist'].min())/(points_out['dist'].max()-points_out['dist'].min())
         return {
-            'points' : points_out.sample(len(points_out)).reset_index(drop=True).to_json(),
+            'points' : points_out.drop(['index_right','dist'], axis=1).sample(len(points_out)).reset_index(drop=True).to_json(),
             'voronoi': voronoi.to_json()
         }
     else:
         points_gdf['dist'] = shapely.distance(centroid, points_gdf.geometry)
         # (df-df.min())/(df.max()-df.min())
         points_gdf['dist']= 1 - (points_gdf['dist']-points_gdf['dist'].min())/(points_gdf['dist'].max()-points_gdf['dist'].min())
-        return {'points':points_gdf.to_json()}
+        return {'points':points_gdf.drop(['index_right','dist']).to_json()}
 
 
 @app.route('/getroads', methods=['GET', 'POST'])
