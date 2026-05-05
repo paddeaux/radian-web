@@ -901,6 +901,18 @@ $(document).ready(function(){
         return metaTable;
     };
 
+    function formatCov() {
+        var i = 0;
+        var covTable = document.createElement("table");
+        covTable.innerHTML = `
+            <tr><td></td><td>lat</td><td>lon</td><td>X</td></tr>
+            <tr><td>lat</td><td>1</td><td>0</td><td>0</td></tr>
+            <tr><td>long</td><td>0</td><td>1</td><td>0</td></tr>
+            <tr><td>X</td><td>0</td><td>0</td><td>1</td></tr>
+            `
+        return covTable;
+    };
+
     var layerPopup;
     pointGroup.on('mouseover', function(e){
         var pointMeta = e.layer.feature.properties

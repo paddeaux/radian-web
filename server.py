@@ -73,7 +73,7 @@ def process():
         points_gdf['dist'] = shapely.distance(centroid, points_gdf.geometry)
         # (df-df.min())/(df.max()-df.min())
         points_gdf['dist']= 1 - (points_gdf['dist']-points_gdf['dist'].min())/(points_gdf['dist'].max()-points_gdf['dist'].min())
-        return {'points':points_gdf.drop(['index_right','dist']).to_json()}
+        return {'points':points_gdf.drop(['dist'],axis=1).to_json()}
 
 
 @app.route('/getroads', methods=['GET', 'POST'])
