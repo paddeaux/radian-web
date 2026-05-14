@@ -23,7 +23,17 @@ app = Flask(__name__)
 @app.route('/', methods=['GET','POST'])
 def root():
     return render_template('index.html')
+"""
+    2D Covariance Matrix:
+    [var(x), cov(xy)]
+    [cov(xy), var(y)]
 
+    3D Covariance matrix
+    [[var(x), cov(x, y), cov(x,z)],
+     [cov(x,y), var(y), cov(y,z)],
+     [cov(x,z), cov(y,z), var(z)]
+    ]
+"""
 
 @app.route('/test', methods=['GET', 'POST'])
 def process():
@@ -35,6 +45,13 @@ def process():
     gen_type = poly['params']['gen_type']
     points_split = poly['params']['points_split']
     centroid = shapely.Point(poly['centroid']['geometry']['coordinates'])
+    covar = poly['params']['covar']
+
+    print("covariance matrix:\n", covar)
+    #min_x, min_y, max_x, max_y = gdf.bounds
+    #cx, cy = centroid.x, centroid.y
+    #sd_x = (max_y - min_y)/3
+    #sd_y = (max_x - min_x)/3
 
     points_gdf = gpd.GeoDataFrame(geometry=[])
     vor_points_gdf = gpd.GeoDataFrame(geometry=[])
@@ -54,12 +71,14 @@ def process():
     print("generating primary points")
     # primary generation
     if gen_type == 1:
-        points_gdf = gaussian_moving_centre(gdf, primary, centroid)
+        points_gdf = gaussian_moving_centre(gdf, primary, centroid, 4326, covar)
     else:
         points_gdf = points_uniform(gdf, primary)
 
     # combine primary and secondary points
     
+    if len(points_gdf) == 0:
+        return {'points':points_gdf.to_json()}
     if vor_number > 0 and poly['voronoi'] != None:
         points_out = pd.concat([points_gdf, vor_points_gdf], ignore_index=True)
         #return points_out.sample(len(points_out)).reset_index(drop=True).to_json()

@@ -16,6 +16,12 @@ $(document).ready(function(){
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
 
+    // gaussian covariance
+    var polyVar_x;
+    var polyVar_y;
+    var polyCoVar;
+    var polyCovarXY = 0;
+
     var polyArea = 0;
     var areaLimit = 10 // area limit for Roads distirbution in Km^2
 
@@ -116,7 +122,8 @@ $(document).ready(function(){
             "gen_type" : +gen_type,
             "vor_number" : +document.getElementById("vor_number").value,
             "points_split": +document.getElementById("points_split").value,
-            "road_offset": 5 // need to set UI slider for this
+            "road_offset": 5, // need to set UI slider for this
+            "covar" : polyCoVar
         }
     }
  
@@ -186,10 +193,15 @@ $(document).ready(function(){
                     polyGroup.clearLayers();
                     L.geoJSON(geojsonFeature).addTo(polyGroup);
                 }
-                console.log(polyGroup.getLayers()[0].getLayers()[0].getLatLngs()[0])
+                polyBounds = L.latLngBounds(polyGroup.getLayers()[0].getLayers()[0].getLatLngs()[0]);
                 polyArea = L.GeometryUtil.geodesicArea(polyGroup.getLayers()[0].getLayers()[0].getLatLngs()[0]);
+                console.log("polyBounds:\nXmin = ", polyBounds._southWest.lng, " Xmax = ", polyBounds._northEast.lng);
+                console.log("polyBounds:\nYmin = ", polyBounds._southWest.lat, " Ymax = ", polyBounds._northEast.lat);
+                polyVar_x = (polyBounds._northEast.lat - polyBounds._southWest.lat)/3;
+                polyVar_y = (polyBounds._northEast.lng - polyBounds._southWest.lng)/3;
                 map.fitBounds(polyGroup.getBounds());
                 refreshInfo();
+                setCov();
             })
             document.getElementById('btn-generate').disabled = false;
             document.getElementById('btn-zoom').disabled = false;
@@ -261,10 +273,10 @@ $(document).ready(function(){
             <legend class="slide-legend">Points Distribution:</legend>
             <div class='slidecontainer'>
             <div>   
-                <input type="radio" class='radio inputs' id="gen_uniform" name="distribution" value="uniform" checked />Uniform
+                <input type="radio" class='radio inputs' id="gen_uniform" name="distribution" value="uniform"/>Uniform
             </div>
                 <div>
-                    <input type="radio" class='radio inputs' id="gen_gaussian" name="distribution" value="gaussian" />
+                    <input type="radio" class='radio inputs' id="gen_gaussian" name="distribution" value="gaussian" checked />
                     <label for="gen_gaussian">Gaussian</label>
                 </div>
                 <div>
@@ -573,7 +585,7 @@ $(document).ready(function(){
                             return markersGroup.getLayers()[0];
                         }    
                     }
-                    
+                    getCov();
                     $.ajax({
                         url: "/test",
                         type: "POST",
@@ -582,30 +594,36 @@ $(document).ready(function(){
                             'data' : polyGroup.toGeoJSON(),
                             'params' : getParams(),
                             'centroid' : getCentroid().toGeoJSON(),
-                            'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null             
+                            'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null
                         }),
                             success: function(response){
-                                if (pointGroup.getLayers().length > 0) {
-                                    pointGroup.clearLayers();
-                                }
-                                L.geoJSON(JSON.parse(response['points']), {
-                                    pointToLayer: function (feature, latlng) {
-                                        return L.circleMarker(latlng, geojsonMarkerOptions);
+                                if (JSON.parse(response['points']).features.length == 0) {
+                                    console.log("no points received.");
+                                    readoutMessage("Please check covariance parameters...");
+                                    document.getElementById('btn-generate').disabled = false;
+                                } else {
+                                    if (pointGroup.getLayers().length > 0) {
+                                        pointGroup.clearLayers();
                                     }
-                                }).addTo(pointGroup)
-                                if('voronoi' in response) {
-                                    if (vorGroup.getLayers().length < 1) {
-                                        vorGroup.clearLayers()
-                                        L.geoJSON(JSON.parse(response['voronoi'])).addTo(vorGroup);
+                                    L.geoJSON(JSON.parse(response['points']), {
+                                        pointToLayer: function (feature, latlng) {
+                                            return L.circleMarker(latlng, geojsonMarkerOptions);
+                                        }
+                                    }).addTo(pointGroup)
+                                    if('voronoi' in response) {
+                                        if (vorGroup.getLayers().length < 1) {
+                                            vorGroup.clearLayers()
+                                            L.geoJSON(JSON.parse(response['voronoi'])).addTo(vorGroup);
+                                        }
                                     }
+                                    refreshInfo()
+                                    console.log("points:", pointGroup.getLayers()[0].getLayers().length)
+                                    document.getElementById('btn-generate').disabled = false;
+                                    document.getElementById('btn-download').disabled = false;
+                                    readoutMessage(getParams());
+                                    pointTimeEnd = Date.now() - pointTimeStart;
+                                    console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
                                 }
-                                refreshInfo()
-                                console.log("points:", pointGroup.getLayers()[0].getLayers().length)
-                                document.getElementById('btn-generate').disabled = false;
-                                document.getElementById('btn-download').disabled = false;
-                                readoutMessage(getParams());
-                                pointTimeEnd = Date.now() - pointTimeStart;
-                                console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
                             }
                     });
                 } 
@@ -744,12 +762,56 @@ $(document).ready(function(){
                             <th>Variable Name</th>
                             <th>Variable Type</th>
                             <th>Settings</th>
+                            <th>Correlation<th>
                         </tr>
                     </table>
                 </div>
         `;
         return metaReadDiv;
     }
+
+
+    const covReadout = L.control({ position: 'bottomright'});
+    covReadout.onAdd = () => {
+        const covReadDiv = L.DomUtil.create('div', 'meta-list-wrapper');
+        covReadDiv.innerHTML = `
+                <legend class="slide-legend">Covariance Matrix</legend>
+                <div class='slidecontainer slide-long'>
+                    <table id='covariance-table'>
+                        <tr>
+                            <td>var(y)<input type="text" id="var_y" value=${+polyVar_y}></td>
+                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
+                        </tr>
+                        <tr>
+                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
+                            <td>var(x)<input type="text" id="var_x" value=${+polyVar_x}></td>
+                        </tr>
+                    </table>
+                </div>
+        `;
+        return covReadDiv;
+    }
+
+    function setCov() {
+        document.getElementById('var_y').value = polyVar_y**2;
+        document.getElementById('var_x').value = polyVar_x**2;
+        document.getElementById('covar_yx').value = polyCovarXY;
+        polyCoVar = [
+            [polyVar_y, polyCovarXY],
+            [polyCovarXY, polyVar_x]
+        ]
+    };
+
+    function getCov() {
+        polyVar_y = document.getElementById('var_y').value;
+        polyVar_x = document.getElementById('var_x').value;
+        polyCovarXY = document.getElementById('covar_yx').value;
+        polyCoVar = [
+            [polyVar_y, polyCovarXY],
+            [polyCovarXY, polyVar_x]
+        ]
+    }
+
 
     //top right stuff
     generateButton.addTo(map);
@@ -772,9 +834,17 @@ $(document).ready(function(){
 
     metaReadout.addTo(map);
     disableDragging(metaReadout);
-
     var varNumber = 0
     // sample listing for metadata attributes
+
+    covReadout.addTo(map);
+    disableDragging(covReadout);
+
+    document.getElementById('covariance-table').addEventListener('change', function (e) {
+        console.log("values changed");
+        getCov();
+    });
+
 
     document.getElementById('var_button_add').addEventListener('click', function (e) {
         varNumber++;
@@ -801,6 +871,7 @@ $(document).ready(function(){
             <td>${varName}</td>
             <td>${varChoice}</td>
             <td>${"(" + varSettings + ")"}</td>
+            <td><input type="radio" id=${"var"+varNumber} name="auto_corr" value=${varName}></td>
         `;
         document.getElementById('button_gen_metadata').disabled = false;
     });
@@ -901,17 +972,6 @@ $(document).ready(function(){
         return metaTable;
     };
 
-    function formatCov() {
-        var i = 0;
-        var covTable = document.createElement("table");
-        covTable.innerHTML = `
-            <tr><td></td><td>lat</td><td>lon</td><td>X</td></tr>
-            <tr><td>lat</td><td>1</td><td>0</td><td>0</td></tr>
-            <tr><td>long</td><td>0</td><td>1</td><td>0</td></tr>
-            <tr><td>X</td><td>0</td><td>0</td><td>1</td></tr>
-            `
-        return covTable;
-    };
 
     var layerPopup;
     pointGroup.on('mouseover', function(e){

@@ -240,7 +240,7 @@ def gaussian_centre(poly, num_points, epsg=4326):
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
     return points_out
 
-def gaussian_moving_centre(poly, num_points, centre, epsg=4326):
+def gaussian_moving_centre_v1(poly, num_points, centre, epsg=4326):
     """
     Return a GeoDataFrame containing a set of Gaussian distributed, random points
     set within the bounds of the given geometry.
@@ -271,6 +271,45 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326):
             else:
                 print("issue found in Gaussian moving centre")
                 print("generated points = ", len(geo_pts), ", sample size = ", num_points)
+        points_out = pd.concat([points_out, geo_pts], ignore_index=True)
+    return points_out
+
+def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None):
+    """
+    Return a GeoDataFrame containing a set of Gaussian distributed, random points
+    set within the bounds of the given geometry.
+
+    Works for both single and multiple geometries present in the gdf.
+
+    @type poly: geodataframe
+    @param poly: GDF containing polygons
+    @type num_points: integer
+    @param num_points: Number of uniform points to be generated within each geometry
+    """
+    points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
+    i_max = 200
+    i = 0
+    for geom in poly.geometry:
+        points_found = False
+        #min_x, min_y, max_x, max_y = geom.bounds
+        cx, cy = centre.x, centre.y
+        #sd_x = (max_y - min_y)/3
+        #sd_y = (max_x - min_x)/3
+        #cov = np.array([[sd_y**2, 0], [0, sd_x**2]])
+        while not points_found:
+            if i >= i_max:
+                return gpd.GeoDataFrame(geometry=[], crs=epsg)
+            pts = pd.DataFrame(np.random.multivariate_normal((cx, cy), covar, size=int(round(num_points*4))), columns=['x','y'])
+            geo_pts = gpd.GeoDataFrame(geometry=gpd.points_from_xy(pts['x'], pts['y'], crs=epsg))
+            geo_pts = geo_pts.sjoin(gpd.GeoDataFrame(geometry=gpd.GeoSeries([geom]), crs=epsg), predicate='within')
+            if num_points < len(geo_pts):
+                geo_pts = geo_pts.sample(num_points)
+                points_found = True
+            else:
+                print("issue found in Gaussian moving centre")
+                print("generated points = ", len(geo_pts), ", sample size = ", num_points)
+                i += 1
+                
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
     return points_out
 
