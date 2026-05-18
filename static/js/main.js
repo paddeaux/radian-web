@@ -16,12 +16,19 @@ $(document).ready(function(){
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
 
+    
+
     // gaussian covariance
     var polyVar_x;
+    var polyVar_x_org;
     var polyVar_y;
+    var polyVar_y_org;
+    var polyVar_z;
+
     var polyCoVar;
     var polyCovarXY = 0;
-
+    var polyCovarYZ = 0;
+    var polyCovarXZ = 0;
     var polyArea = 0;
     var areaLimit = 10 // area limit for Roads distirbution in Km^2
 
@@ -199,9 +206,11 @@ $(document).ready(function(){
                 console.log("polyBounds:\nYmin = ", polyBounds._southWest.lat, " Ymax = ", polyBounds._northEast.lat);
                 polyVar_x = (polyBounds._northEast.lat - polyBounds._southWest.lat)/3;
                 polyVar_y = (polyBounds._northEast.lng - polyBounds._southWest.lng)/3;
+                polyVar_x_org = polyVar_x
+                polyVar_y_org = polyVar_y
                 map.fitBounds(polyGroup.getBounds());
                 refreshInfo();
-                setCov();
+                setCov2D();
             })
             document.getElementById('btn-generate').disabled = false;
             document.getElementById('btn-zoom').disabled = false;
@@ -585,7 +594,7 @@ $(document).ready(function(){
                             return markersGroup.getLayers()[0];
                         }    
                     }
-                    getCov();
+                    getCov2D();
                     $.ajax({
                         url: "/test",
                         type: "POST",
@@ -773,42 +782,71 @@ $(document).ready(function(){
 
     const covReadout = L.control({ position: 'bottomright'});
     covReadout.onAdd = () => {
-        const covReadDiv = L.DomUtil.create('div', 'meta-list-wrapper');
-        covReadDiv.innerHTML = `
-                <legend class="slide-legend">Covariance Matrix</legend>
+        const covReadDiv = L.DomUtil.create('div', 'covariance-wrapper');
+        covReadDiv.innerHTML = getCovTable2D();
+        return covReadDiv;
+    }
+
+    function getCovTable2D() {
+        var html = `<legend class="slide-legend">Covariance Matrix</legend>
                 <div class='slidecontainer slide-long'>
-                    <table id='covariance-table'>
+                    <table id='covariance-table_2d'>
+                        <tr>
+                            <td>var(x)<input type="text" id="var_x" value=${+polyVar_x}></td>
+                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
+                        </tr>
+                        <tr>
+                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
+                            <td>var(y)<input type="text" id="var_y" value=${+polyVar_y}></td>
+                        </tr>
+                    </table>
+                    <div><input id='covar_reset_2d' type='button' value='Reset to default'></div>
+                </div>`;
+        return html;
+    }
+
+    function getCovTable3D() {
+        html = `<legend class="slide-legend">Covariance Matrix</legend>
+                <div class='slidecontainer slide-long'>
+                    <table id='covariance-table_3d'>
                         <tr>
                             <td>var(y)<input type="text" id="var_y" value=${+polyVar_y}></td>
                             <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
+                            <td>cov(xz)<input type="text" id="covar_xz" value=${+polyCovarXZ}></td>
                         </tr>
                         <tr>
                             <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
                             <td>var(x)<input type="text" id="var_x" value=${+polyVar_x}></td>
+                            <td>cov(yz)<input type="text" id="covar_yz" value=${+polyCovarYZ}></td>
+                        </tr>
+                        <tr>
+                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXZ}></td>
+                            <td>cov(yz)<input type="text" id="covar_yz" value=${+polyCovarYZ}></td>
+                            <td>var(x)<input type="text" id="var_z" value=${+polyVar_z}></td>
                         </tr>
                     </table>
-                </div>
-        `;
-        return covReadDiv;
+                    <div><input id='covar_reset' type='button' value='Reset to default'></div>
+                </div>`;
+        return html;
     }
 
-    function setCov() {
-        document.getElementById('var_y').value = polyVar_y**2;
-        document.getElementById('var_x').value = polyVar_x**2;
+    function setCov2D() {
+        document.getElementById('var_y').value = polyVar_y_org**2;
+        document.getElementById('var_x').value = polyVar_x_org**2;
         document.getElementById('covar_yx').value = polyCovarXY;
         polyCoVar = [
-            [polyVar_y, polyCovarXY],
-            [polyCovarXY, polyVar_x]
+            [polyVar_x_org, polyCovarXY],
+            [polyCovarXY, polyVar_y_org]
         ]
     };
 
-    function getCov() {
+    function getCov2D() {
         polyVar_y = document.getElementById('var_y').value;
         polyVar_x = document.getElementById('var_x').value;
         polyCovarXY = document.getElementById('covar_yx').value;
         polyCoVar = [
-            [polyVar_y, polyCovarXY],
-            [polyCovarXY, polyVar_x]
+            [polyVar_x, polyCovarXY],
+            [polyCovarXY, polyVar_y]
         ]
     }
 
@@ -840,11 +878,10 @@ $(document).ready(function(){
     covReadout.addTo(map);
     disableDragging(covReadout);
 
-    document.getElementById('covariance-table').addEventListener('change', function (e) {
+    document.getElementById('covariance-table_2d').addEventListener('change', function (e) {
         console.log("values changed");
-        getCov();
+        getCov2D();
     });
-
 
     document.getElementById('var_button_add').addEventListener('click', function (e) {
         varNumber++;
