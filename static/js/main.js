@@ -12,11 +12,13 @@ $(document).ready(function(){
     var markersGroup = L.featureGroup();
     var polyGroup = L.featureGroup();
     var vorGroup = L.featureGroup();
-    var pointGroup = L.featureGroup();
+    var pointGroup = L.layerGroup();
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
 
-    
+    var maxPointLayers = 5;
+    var currentPointLayer = 0;
+    var additivePoints = false;
 
     // gaussian covariance
     var polyVar_x;
@@ -611,7 +613,7 @@ $(document).ready(function(){
                                     readoutMessage("Please check covariance parameters...");
                                     document.getElementById('btn-generate').disabled = false;
                                 } else {
-                                    if (pointGroup.getLayers().length > 0) {
+                                    if (pointGroup.getLayers().length > 0 & !additivePoints) {
                                         pointGroup.clearLayers();
                                     }
                                     L.geoJSON(JSON.parse(response['points']), {
@@ -662,6 +664,28 @@ $(document).ready(function(){
             document.getElementById('btn-generate').disabled = false;
         });
         return clearDiv;
+    }
+
+    const addLayerButton = L.control({ position: 'topright'});
+    addLayerButton.onAdd = () => {
+        const addLayerDiv = L.DomUtil.create('div', 'addlayer-wrapper');
+        addLayerDiv.innerHTML = `
+        <div class="tooltip">
+            <span class="tooltiptext tooltip-left">Toggle additive layers</span>
+            <button class='button btn-icon' id='btn-plus' title='Toggle additive layers'><i class='fa-solid fa-plus'></i></button>
+        </div>
+        `;
+        addLayerDiv.addEventListener('click', () => {
+            console.log("click");
+            if(additivePoints) {
+                additivePoints = false;
+                document.getElementById('btn-plus').style.backgroundColor = '#eccf18';
+            } else {
+                additivePoints = true;
+                document.getElementById('btn-plus').style.backgroundColor = '#b5ff8d';
+            }
+        });
+        return addLayerDiv;
     }
 
 
@@ -854,6 +878,8 @@ $(document).ready(function(){
     //top right stuff
     generateButton.addTo(map);
     disableDragging(generateButton);
+    addLayerButton.addTo(map);
+    disableDragging(addLayerButton);
     generateVoronoi.addTo(map);
     disableDragging(generateVoronoi);
     getRoads.addTo(map);
