@@ -12,7 +12,7 @@ $(document).ready(function(){
     var markersGroup = L.featureGroup();
     var polyGroup = L.featureGroup();
     var vorGroup = L.featureGroup();
-    var pointGroup = L.layerGroup();
+    var pointGroup = L.layerGroup().addLayer(L.featureGroup());
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
 
@@ -105,6 +105,18 @@ $(document).ready(function(){
     });
 
 
+    function pointMarkers(colourIndex) {
+        colourList = ["#ff7800", "#f2ff00", "#59ff00", "#00ccff", "#dd00ff"];
+        return {
+            radius: 4,
+            fillColor: `${colourList[colourIndex]}`,
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        }
+    }
+
     var geojsonMarkerOptions = {
         radius: 4,
         fillColor: "#ff7800",
@@ -113,7 +125,6 @@ $(document).ready(function(){
         opacity: 1,
         fillOpacity: 0.8
     };
-
     
     function getParams() {
         var gen_type;
@@ -459,7 +470,7 @@ $(document).ready(function(){
                             console.log("plotting points", JSON.parse(response['points']))
                             L.geoJSON(JSON.parse(response['points']), {
                                 pointToLayer: function (feature, latlng) {
-                                    return L.circleMarker(latlng, geojsonMarkerOptions);
+                                    return L.circleMarker(latlng, pointMarkers(currentPointLayer));
                                 }
                             }).addTo(pointGroup)
                             roadPointTimeEnd = Date.now() - roadPointTimeStart;
@@ -562,18 +573,21 @@ $(document).ready(function(){
                                 'params' : getParams()
                             }),
                                 success: function(response){
-                                    if (pointGroup.getLayers().length > 0) {
+                                    if (pointGroup.getLayers()[currentPointLayer].length > 0) {
                                         pointGroup.clearLayers();
                                     }
                                     console.log("plotting points", JSON.parse(response['points']))
                                     L.geoJSON(JSON.parse(response['points']), {
                                         pointToLayer: function (feature, latlng) {
-                                            return L.circleMarker(latlng, geojsonMarkerOptions);
+                                            return L.circleMarker(latlng, pointMarkers(currentPointLayer));
                                         }
-                                    }).addTo(pointGroup)
+                                    }).addTo(pointGroup.getLayers()[currentPointLayer])
                                     console.log("added points")
                                     pointTimeEnd = Date.now() - pointTimeStart;
                                     console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
+                                    if(additivePoints & (currentPointLayer < maxPointLayers)) {
+                                        currentPointLayer++;
+                                    }
                                 },
                                 error: function(response){
                                     console.log("we dun goofed")
@@ -613,14 +627,26 @@ $(document).ready(function(){
                                     readoutMessage("Please check covariance parameters...");
                                     document.getElementById('btn-generate').disabled = false;
                                 } else {
-                                    if (pointGroup.getLayers().length > 0 & !additivePoints) {
-                                        pointGroup.clearLayers();
+                                    if(additivePoints) {
+                                        if(currentPointLayer < maxPointLayers) {
+                                            currentPointLayer++;
+                                            pointGroup.addLayer(L.featureGroup())
+                                        } else {
+                                            pointGroup.getLayers()[currentPointLayer].clearLayers();
+                                        }
+                                    } else {
+                                        pointGroup.getLayers()[currentPointLayer].clearLayers();
                                     }
+
+                                    console.log("point layer list:", pointGroup.getLayers())
+                                    console.log("[currentPointLayer]", pointGroup.getLayers()[currentPointLayer])
+                                    
                                     L.geoJSON(JSON.parse(response['points']), {
                                         pointToLayer: function (feature, latlng) {
-                                            return L.circleMarker(latlng, geojsonMarkerOptions);
+                                            return L.circleMarker(latlng, pointMarkers(currentPointLayer));
                                         }
-                                    }).addTo(pointGroup)
+                                    }).addTo(pointGroup.getLayers()[currentPointLayer]);
+                                    console.log(`current layer ${currentPointLayer}`);
                                     if('voronoi' in response) {
                                         if (vorGroup.getLayers().length < 1) {
                                             vorGroup.clearLayers()
@@ -634,6 +660,7 @@ $(document).ready(function(){
                                     readoutMessage(getParams());
                                     pointTimeEnd = Date.now() - pointTimeStart;
                                     console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
+                                    console.log("current layer:", currentPointLayer);
                                 }
                             }
                     });
@@ -661,6 +688,8 @@ $(document).ready(function(){
             readoutMessage("Data cleared.");
             pointGroup.clearLayers();
             vorGroup.clearLayers();
+            currentPointLayer = 0;
+            pointGroup.addLayer(L.featureGroup());
             document.getElementById('btn-generate').disabled = false;
         });
         return clearDiv;
@@ -679,11 +708,23 @@ $(document).ready(function(){
             console.log("click");
             if(additivePoints) {
                 additivePoints = false;
-                document.getElementById('btn-plus').style.backgroundColor = '#eccf18';
+                document.getElementById('btn-plus').style.backgroundColor = '#b5ff8d';
+                console.log("additive points: off");
             } else {
                 additivePoints = true;
-                document.getElementById('btn-plus').style.backgroundColor = '#b5ff8d';
+                document.getElementById('btn-plus').style.backgroundColor = '#eccf18';
+                console.log("additive points: on");
             }
+            /*
+            if(currentPointLayer < maxPointLayers) {
+                console.log("pointGroup:", pointGroup.getLayers())
+                console.log("length: ", pointGroup.getLayers().length);
+                pointGroup.addLayer(L.featureGroup())
+                currentPointLayer++;
+            } else {
+                console.log(`max layers reached (${maxPointLayers})`);
+            }  
+            */
         });
         return addLayerDiv;
     }
@@ -961,9 +1002,9 @@ $(document).ready(function(){
     var metaDataTimeEnd;
     document.getElementById('button_gen_metadata').addEventListener('click', function (e) {
         metaDataTimeStart = Date.now();
+        console.log("length of pointGroup[0], post metadata:", pointGroup.getLayers()[0].length)
         if(pointGroup.getLayers().length > 0) {
             if(varNumber > 0) {
-                
                 $.ajax({
                     url: "/metadata",
                     type: "POST",
@@ -973,8 +1014,10 @@ $(document).ready(function(){
                         'params' : metaDict
                     }),
                         success: function(response){
-                            if (pointGroup.getLayers().length > 0) {
+                            if (pointGroup.getLayers()[0].length > 0) {
                                 pointGroup.clearLayers();
+                                //pointGroup.addLayer(L.featureGroup());
+                                currentPointLayer = 0;
                             }
                             // get indexs of the timestamp variables
                             var tsIndex = []
@@ -1003,10 +1046,11 @@ $(document).ready(function(){
                                     //console.log(feature.properties)
                                     return L.circleMarker(latlng, geojsonMarkerOptions);
                                 }
-                            }).addTo(pointGroup);
+                            }).addTo(pointGroup.getLayers()[currentPointLayer]);
                             console.log("added points with metadata")
                             metaDataTimeEnd = Date.now() - metaDataTimeStart;
                             console.log(`Metadata generation - Time taken = ${metaDataTimeEnd / 1000} seconds`)
+                            console.log(pointGroup)
                         },
                         error: function(response){
                             console.log("we dun goofed")
@@ -1037,7 +1081,8 @@ $(document).ready(function(){
 
 
     var layerPopup;
-    pointGroup.on('mouseover', function(e){
+    pointGroup.getLayers()[0].on('mouseover', function(e){
+        console.log("squeak squeak squeak")
         var pointMeta = e.layer.feature.properties
         var coordinates = e.layer.feature.geometry.coordinates;
         var swapped_coordinates = [coordinates[1], coordinates[0]];  //Swap Lat and Lng
@@ -1048,7 +1093,8 @@ $(document).ready(function(){
                 .openOn(map);            
         }
     });
-    pointGroup.on('mouseout', function (e) {
+    pointGroup.getLayers()[0].on('mouseout', function (e) {
+        console.log("cheese")
         if (layerPopup && map) {
             map.closePopup(layerPopup);
             layerPopup = null;
