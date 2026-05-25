@@ -2,7 +2,7 @@ $(document).ready(function(){
     var marker;
     var disableMarker = false;
     var map = L.map('map', {zoomControl: false}).fitWorld();
-    
+
    
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: 
@@ -249,6 +249,40 @@ $(document).ready(function(){
         return zoomDiv;
     };
     
+    // layer up
+    const layerPlus = L.control({ position: 'topleft' });
+    layerPlus.onAdd = () => {
+        const layerPlusDiv = L.DomUtil.create('div', 'layer-plus-wrapper');
+        layerPlusDiv.innerHTML = `
+            <div class="tooltip">
+                <span class="tooltiptext tooltip-layer-plus">Move up a layer</span>
+                <button class='button-small btn-icon-small' id='btn-layer-plus' title='Move up a layer' disabled><i class='fa-solid fa-plus'></i></button>
+            </div>
+                `;
+        layerPlusDiv.addEventListener('click', () => {
+            console.log("up layer")
+
+        });
+        return layerPlusDiv;
+    };
+
+    // layer down
+    const layerMinus = L.control({ position: 'topleft' });
+    layerMinus.onAdd = () => {
+        const layerMinusDiv = L.DomUtil.create('div', 'layer-minus-wrapper');
+        layerMinusDiv.innerHTML = `
+            <div class="tooltip">
+                <span class="tooltiptext tooltip-layer-minus">Move down a layer</span>
+                <button class='button-small btn-icon-small' id='btn-layer-plus' title='Move down a layer' disabled><i class='fa-solid fa-minus'></i></button>
+            </div>
+                `;
+        layerMinusDiv.addEventListener('click', () => {
+            console.log("down layer")
+
+        });
+        return layerMinusDiv;
+    };
+
     searchBar.addTo(map);
     disableDragging(searchBar);
     searchButton.addTo(map)
@@ -281,7 +315,7 @@ $(document).ready(function(){
         const pointDiv = L.DomUtil.create('div', 'point-wrapper');
         pointDiv.innerHTML = `
             <legend class="slide-legend">Number of Points</legend>
-                <div class='slidecontainer slide-tall'>
+                <div class='slidecontainer'>
                     <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="50000" step="50" oninput="this.nextElementSibling.value = this.value;"/>
                     <output class='param-text'>250</output>
                 </div>`;
@@ -354,23 +388,17 @@ $(document).ready(function(){
         infoDiv.innerHTML = `
             <legend class='slide-legend'>Layer Info</legend>
             <div class='slidecontainer gen-info' id='gen-info'>
-            <table>
+            <table class='gen-info-table'>
                 <tr>
                     <th>Total Points</th>
                     <th>Primary Points</th>
                     <th>Secondary Points</th>
-                    <th>Points Split</th>
-                    <th>No. Voronoi</th>
-                    <th>Avg. Points per Voronoi<th>
                     <th>Boundary Area</th>
                 </tr>
                 <tr>
                     <td>${document.getElementById('random_points').value}</td>
                     <td>${Math.round(document.getElementById('random_points').value * (document.getElementById('points_split').value/100))}
                     <td>${document.getElementById('random_points').value - (Math.round(document.getElementById('random_points').value * (document.getElementById('points_split').value/100)))}
-                    <td>${document.getElementById('points_split').value}% primary, ${100 - document.getElementById('points_split').value}% secondary </td>
-                    <td>${document.getElementById('vor_number').value}</td>
-                    <td>${Math.ceil((document.getElementById('random_points').value - (Math.round(document.getElementById('random_points').value * (document.getElementById('points_split').value/100)))) / (document.getElementById('vor_number').value))}</td>
                     <td>${(polyArea / 1000000).toFixed(2)}km2</td>
                 </tr>
             </table>
@@ -830,13 +858,12 @@ $(document).ready(function(){
         const metaReadDiv = L.DomUtil.create('div', 'meta-list-wrapper');
         metaReadDiv.innerHTML = `
                 <legend class="slide-legend">Attributes</legend>
-                <div class='slidecontainer slide-long'>
+                <div class='slidecontainer'>
                     <table class='metadata-table'>
                         <tr>
                             <th>Variable Name</th>
                             <th>Variable Type</th>
                             <th>Settings</th>
-                            <th>Correlation<th>
                         </tr>
                     </table>
                 </div>
@@ -929,9 +956,12 @@ $(document).ready(function(){
     disableDragging(clearButton);
     downloadButton.addTo(map);
     disableDragging(downloadButton);
+    covReadout.addTo(map);
+    disableDragging(covReadout);
     metaChoice.addTo(map);
     disableDragging(metaChoice);
-    
+
+
     document.getElementById('var_choice').addEventListener('change', function (e) {
         updateChoice();
     });
@@ -942,8 +972,7 @@ $(document).ready(function(){
     var varNumber = 0
     // sample listing for metadata attributes
 
-    covReadout.addTo(map);
-    disableDragging(covReadout);
+
 
     document.getElementById('covariance-table_2d').addEventListener('change', function (e) {
         console.log("values changed");
@@ -975,7 +1004,6 @@ $(document).ready(function(){
             <td>${varName}</td>
             <td>${varChoice}</td>
             <td>${"(" + varSettings + ")"}</td>
-            <td><input type="radio" id=${"var"+varNumber} name="auto_corr" value=${varName}></td>
         `;
         document.getElementById('button_gen_metadata').disabled = false;
     });

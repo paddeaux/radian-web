@@ -30,6 +30,20 @@ p {
     cursor: pointer;
 }
 
+.button-small {
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 6px;
+    height: 22px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 8px;
+    margin: auto;
+    cursor: pointer;
+}
+
 .leaflet-draw-section {
     width: 48px;
     height: 48px;
@@ -150,6 +164,21 @@ p {
     margin-left: 10px
 }
 
+.layer-plus-wrapper.leaflet-control {
+    transform: translate(2160%, -920%);
+    margin: auto;
+    margin-top: 0px;
+    margin-left: 10px;
+    border-radius: 12px;
+}
+
+.layer-minus-wrapper.leaflet-control {
+    transform: translate(2160%, -910%);
+    margin: auto;
+    margin-top: 0px;
+    margin-left: 10px;
+}
+
 .leaflet-control-zoom {
     transform: translate(0%, -250%);
 }
@@ -174,6 +203,11 @@ p {
     padding: 15px 15px;
 }
 
+.btn-icon-small {
+    background-color: #b5ff8d; 
+    color: black;
+    padding: 8px 8px;
+}
 
 .slidecontainer {
     width: 192px;
@@ -185,9 +219,6 @@ p {
     font-size: 12px;
 }
 
-.slide-tall {
-    height: 96px;
-}
 
 .slide-long {
     width: 384px;
@@ -202,12 +233,22 @@ p {
 .slide-legend {font-size: 16px;}
 
 .gen-info {
-    width: 768px;
-    font-size: 16px;
+    width: 500px;
+    font-size: 15px;
+}
+
+.gen-info-table {
+    border-collapse: separate;
+    border-spacing: 10px;
+}
+
+.metadata-table {
+    border-collapse: separate;
+    border-spacing: 10px;
 }
 
 .geninfo-wrapper {
-    transform: translate(30%, 290%)
+    transform: translate(42%, 345%)
 }
 
 .slider {
