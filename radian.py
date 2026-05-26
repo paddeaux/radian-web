@@ -48,9 +48,10 @@ glob_random_seed = randint(0, 99999999)
 warnings.filterwarnings('ignore')
 
 def poly_bb_ratio(poly):
+    return 1.8
     min_x, min_y, max_x, max_y = poly.bounds
     bb = gpd.GeoSeries(box(min_x, min_y, max_x, max_y, ccw=True))
-    ratio = float(1/(poly.area/bb.area))
+    ratio = float(1/(poly.area/bb.area[0]))
     if ratio < 1.8:
         return 1.8
     return ratio
@@ -371,9 +372,9 @@ def voronoi_gen(poly, poly_centroid, vor_num=12, gen_type='eq', epsg=4326): #'eq
 
     df = pd.DataFrame(list(region_polys.items()), columns=['index','geometry'])
     gdf_poly = gpd.GeoDataFrame(df, geometry='geometry', crs=epsg)
-
+    return gdf_poly[['geometry']].reset_index(drop=True)
     # Calculating distance of Voronoi polygons to the centroid (moving or original)
-    gdf_poly['dist_to_centre'] = 0
+    gdf_poly['dist_to_centre'] = 0.0
     for i in range(vor_num):
         if(gen_type == 'rand'):
             current = gdf_poly['geometry'][i].centroid.distance(gdf_centroid.iloc[0].geometry)

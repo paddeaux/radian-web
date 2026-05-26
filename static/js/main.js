@@ -16,7 +16,7 @@ $(document).ready(function(){
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
 
-    var maxPointLayers = 5;
+    var maxPointLayers = 15;
     var currentPointLayer = 0;
     var additivePoints = false;
 
@@ -142,7 +142,7 @@ $(document).ready(function(){
             "gen_type" : +gen_type,
             "vor_number" : +document.getElementById("vor_number").value,
             "points_split": +document.getElementById("points_split").value,
-            "road_offset": 5, // need to set UI slider for this
+            "road_offset": +document.getElementById("road_buffer").value,
             "covar" : polyCoVar
         }
     }
@@ -365,7 +365,23 @@ $(document).ready(function(){
         return readoutDiv;
     }; 
 
+
+    const roadBufferSlider = L.control({ position: 'bottomleft'});
+    roadBufferSlider.onAdd = () => {
+        const roadBufferDiv = L.DomUtil.create('div', 'road-buffer-wrapper');
+        roadBufferDiv.innerHTML = `
+                <legend class="slide-legend">Road Buffer (m)</legend>
+                <div class='slidecontainer'>
+                    <input type="range" class='slider inputs' value="5" id="road_buffer" name="road_buffer" min="0" max="10" step="1" oninput="this.nextElementSibling.value = this.value;"/>
+                    <output class='param-text'>5</output>
+                </div>`;
+        return roadBufferDiv;
+    }
     //bottom left stuff
+
+
+    roadBufferSlider.addTo(map);
+    disableDragging(roadBufferSlider);
     voronoiSlider.addTo(map);
     disableDragging(voronoiSlider);
     ratioSlider.addTo(map);
@@ -884,15 +900,15 @@ $(document).ready(function(){
                 <div class='slidecontainer slide-long'>
                     <table id='covariance-table_2d'>
                         <tr>
-                            <td>var(x)<input type="text" id="var_x" value=${+polyVar_x}></td>
-                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
+                            <td>var(x)<input type="number" step=0.0001 id="var_x" value=${+polyVar_x}></td>
+                            <td>cov(yx)<input type="number" step=0.0001 id="covar_yx_a" value=${+polyCovarXY}></td>
                         </tr>
                         <tr>
-                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
-                            <td>var(y)<input type="text" id="var_y" value=${+polyVar_y}></td>
+                            <td>cov(yx)<input type="number" step=0.0001 id="covar_yx_b" value=${+polyCovarXY}></td>
+                            <td>var(y)<input type="number" step=0.0001 id="var_y" value=${+polyVar_y}></td>
                         </tr>
                     </table>
-                    <div><input id='covar_reset_2d' type='button' value='Reset to default'></div>
+                    <div><input id='covar_reset' type='button' value='Reset to default'></div>
                 </div>`;
         return html;
     }
@@ -917,15 +933,20 @@ $(document).ready(function(){
                             <td>var(x)<input type="text" id="var_z" value=${+polyVar_z}></td>
                         </tr>
                     </table>
-                    <div><input id='covar_reset' type='button' value='Reset to default'></div>
+                    <div><input id='covar_reset_3d' type='button' value='Reset to default'></div>
                 </div>`;
         return html;
     }
 
+
+
     function setCov2D() {
-        document.getElementById('var_y').value = polyVar_y_org**2;
-        document.getElementById('var_x').value = polyVar_x_org**2;
-        document.getElementById('covar_yx').value = polyCovarXY;
+        console.log("resetting covariance matrix")
+        document.getElementById('var_y').value = (polyVar_y_org**2).toFixed(6);
+        document.getElementById('var_x').value = (polyVar_x_org**2).toFixed(6);
+        document.getElementById('covar_yx_a').value = (polyCovarXY).toFixed(6);
+        document.getElementById('covar_yx_b').value = (polyCovarXY).toFixed(6);
+
         polyCoVar = [
             [polyVar_x_org, polyCovarXY],
             [polyCovarXY, polyVar_y_org]
@@ -935,7 +956,7 @@ $(document).ready(function(){
     function getCov2D() {
         polyVar_y = document.getElementById('var_y').value;
         polyVar_x = document.getElementById('var_x').value;
-        polyCovarXY = document.getElementById('covar_yx').value;
+        polyCovarXY = document.getElementById('covar_yx_a').value;
         polyCoVar = [
             [polyVar_x, polyCovarXY],
             [polyCovarXY, polyVar_y]
@@ -961,6 +982,10 @@ $(document).ready(function(){
     metaChoice.addTo(map);
     disableDragging(metaChoice);
 
+
+    document.getElementById('covar_reset').addEventListener('click', function (e) {
+        setCov2D();
+    });
 
     document.getElementById('var_choice').addEventListener('change', function (e) {
         updateChoice();

@@ -248,7 +248,7 @@ p {
 }
 
 .geninfo-wrapper {
-    transform: translate(42%, 345%)
+    transform: translate(42%, 350%)
 }
 
 .slider {
@@ -294,7 +294,7 @@ p {
     font-size: 12px;
     padding: 15px 15px;
     margin: auto;
-    transform: translate(0%, -100%);
+    transform: translate(0%, -150%);
 }
 
 
