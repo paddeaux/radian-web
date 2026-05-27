@@ -4,15 +4,13 @@ import radian_web
 import shapely
 import numpy as np
 import pandas as pd
-import osmnx as ox
 import random
 
 from radian_web import points_uniform, gaussian_moving_centre, gaussian_centre
 from radian_web import get_roads_from_poly, road_distribution, generate_vars
 
-from shapely import Polygon
-from flask import Flask, request, jsonify, render_template
-from flask import send_file, send_from_directory
+from flask import Flask, request, render_template
+from flask import send_from_directory
 
 glob_random_seed = random.randint(0,2147483647)
 random.seed(glob_random_seed)

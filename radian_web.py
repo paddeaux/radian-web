@@ -9,22 +9,17 @@ import random
 from random import randint
 import time
 
-import os
 import osmnx as ox
-import json
 import string
 import geopandas as gpd
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import contextily as cx
 import warnings
-from tqdm import tqdm
 import exrex
 
 # voroni generation packages
-from shapely.ops import unary_union#, cascaded_union
+from shapely.ops import unary_union
 
 # k-means clustering packages
 from sklearn.cluster import KMeans
@@ -32,7 +27,6 @@ from sklearn.cluster import KMeans
 # misc json and shapely packages
 import shapely
 from shapely.geometry import Point
-from shapely.geometry import box
 from geovoronoi import voronoi_regions_from_coords, points_to_coords
 # This function takes in a Shapely Polygon object and returns a GeoDataFrame consisting of Voronoi-based buffers
 # centred around either the true centroid of the original Polygon, or around a randomly generated "moving centroid"
