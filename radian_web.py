@@ -47,15 +47,6 @@ glob_random_seed = randint(0, 99999999)
 # Suppress depreciation warnings
 warnings.filterwarnings('ignore')
 
-def poly_bb_ratio(poly):
-    return 1.8
-    min_x, min_y, max_x, max_y = poly.bounds
-    bb = gpd.GeoSeries(box(min_x, min_y, max_x, max_y, ccw=True))
-    ratio = float(1/(poly.area/bb.area[0]))
-    if ratio < 1.8:
-        return 1.8
-    return ratio
-
 ########## POINT GENERATION ##########
 
 def points_uniform(poly, num_points, epsg=4326):
@@ -73,9 +64,7 @@ def points_uniform(poly, num_points, epsg=4326):
     points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
     
     for geom in poly.geometry:
-        points_found = False   
         min_x, min_y, max_x, max_y = geom.bounds
-        poly_ratio = poly_bb_ratio(geom)
         points = []
         # Generates points repeatedly with a uniform generation within the bounds of the polygon
         while len(points) < round(num_points * 3):
@@ -85,125 +74,7 @@ def points_uniform(poly, num_points, epsg=4326):
         gdf = gdf[['geometry']].iloc[0:num_points].reset_index(drop=True)
         points_out = pd.concat([points_out, gdf], ignore_index=True)
     return points_out
-    
-def points_moving_centre(poly, num_points, epsg=4326):
-    """
-    Return a GeoDataFrame containing a set of radially distributed, random points
-    centred around a "rolling" centroid.
 
-    Works for both single and multiple geometries present in the gdf.
-
-    @type poly: geodataframe
-    @param poly: GDF containing polygons
-    @type num_points: integer
-    @param num_points: Number of uniform points to be generated within each geometry
-    """
-
-    points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
-    
-    for geom in poly.geometry:
-        min_x, min_y, max_x, max_y = geom.bounds
-        geom_gdf = gpd.GeoDataFrame(geometry=[geom], crs=epsg)
-
-        cx, cy = geom.centroid.x, geom.centroid.y
-        max_pt = Point(max_x, max_y)
-        radius = max_pt.distance(geom.centroid)
-
-        # Moving centroid is generated in an eliptical region around the original centroid
-        range_x = (max_x - min_x) / 4
-        range_y = (max_y - min_y) / 16
-        centroid_point = Point([random.uniform(cx - range_x, cx + range_x), random.uniform(cy - range_y, cy + range_y)])
-
-        # Number of sections is set as well as the number of points assigned to each section
-        section_num = 5
-        section_size = (radius * 0.8) / section_num
-        section_pts = round(num_points / section_num)
-
-        # Values used to shift point locations to account for the moving centroid generation
-        cent_diff_x = (cx - centroid_point.x) / section_num
-        cent_diff_y = (cy - centroid_point.y) / section_num
-
-        points_gdf = gpd.GeoDataFrame([])
-        # Points are generated section by section
-        for i in range(0, section_num):
-            if num_points % 5 != 0:
-                if i == 4:
-                    temp = section_pts * i
-                    section_pts = num_points - temp
-            # Current circular buffer is created within which to generate points
-            point_current = Point([centroid_point.x + (cent_diff_x * i), centroid_point.y + (cent_diff_y * i)])
-            c_current = point_current.buffer(section_size * (i + 1))
-
-
-            min_x, min_y, max_x, max_y = c_current.bounds
-            buffer_gdf = gpd.GeoDataFrame(geometry=[c_current], crs=epsg)
-            buffer_ratio = 3#poly_bb_ratio(c_current)
-
-            # This while loop controls the generation of points in the current section
-            current_list = []
-            while len(current_list) < section_pts * buffer_ratio:
-                # here we generate a point using a uniform distribution to set the possible x and y ranges
-                current_list.append(Point([random.uniform(min_x, max_x), random.uniform(min_y, max_y)]))
-
-            gdf = gpd.GeoDataFrame(pd.DataFrame(current_list, columns=['geometry']), geometry='geometry', crs=4326)
-            gdf = gdf.sjoin(buffer_gdf, predicate='within')
-            gdf = gdf.drop(['index_right'], axis=1)
-            gdf = gdf.sjoin(geom_gdf, predicate='within')
-            gdf = gdf.drop(['index_right'], axis=1)
-            points_gdf = pd.concat([points_gdf, gdf],ignore_index=True)
-        points_gdf = points_gdf[['geometry']].iloc[0:num_points].reset_index(drop=True)
-        points_out = pd.concat([points_out, points_gdf], ignore_index=True)
-    return points_out
-
-def points_centre(poly, num_points, epsg=4326):
-    """
-    Return a GeoDataFrame containing a set of radially distributed, random points
-    set within the bounds of the given geometry.
-
-    Works for both single and multiple geometries present in the gdf.
-
-    @type poly: geodataframe
-    @param poly: GDF containing polygons
-    @type num_points: integer
-    @param num_points: Number of uniform points to be generated within each geometry
-    """
-    points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
-    for geom in poly.geometry:
-        min_x, min_y, max_x, max_y = geom.bounds
-        # When a multipolygon is generated and passed here an error is thrown - need to catch seed of it not working
-        geom_gdf = gpd.GeoDataFrame(geometry=[geom], crs=epsg)
-
-        cx, cy = geom.centroid.x, geom.centroid.y
-        max_pt = Point(max_x, max_y)
-        radius = max_pt.distance(geom.centroid)
-        
-        section_num = 5
-        section_size = (radius * 0.8) / section_num
-        section_pts = round(num_points / section_num)
-        points_gdf = gpd.GeoDataFrame([])
-        for i in range(0, section_num):
-            if num_points % 5 != 0:
-                if i == 4:
-                    temp = section_pts * i
-                    section_pts = num_points - temp
-            c_current = geom.centroid.buffer(section_size * (i+1))
-            min_x, min_y, max_x, max_y = c_current.bounds
-            buffer_gdf = gpd.GeoDataFrame(pd.DataFrame([c_current], columns=['geometry']), geometry='geometry')
-            current_list = []
-            while len(current_list) < section_pts*3:
-                current_list.append(Point([random.uniform(min_x, max_x), random.uniform(min_y, max_y)]))
-                
-            gdf = gpd.GeoDataFrame(pd.DataFrame(current_list, columns=['geometry']), geometry='geometry')
-            gdf = gdf.sjoin(buffer_gdf, predicate='within')
-            gdf = gdf.drop(['index_right'], axis=1)
-            gdf = gdf.sjoin(geom_gdf, predicate='within')
-            gdf = gdf.drop(['index_right'], axis=1)
-
-            points_gdf = pd.concat([points_gdf, gdf], ignore_index=True)
-
-        points_gdf = points_gdf.iloc[0:num_points].reset_index(drop=True)
-        points_out = pd.concat([points_out, points_gdf], ignore_index=True)
-    return points_out
 
 def gaussian_centre(poly, num_points, epsg=4326):
     """
@@ -237,40 +108,6 @@ def gaussian_centre(poly, num_points, epsg=4326):
                 points_found = True
             else:
                 print("issue found")
-                print("generated points = ", len(geo_pts), ", sample size = ", num_points)
-        points_out = pd.concat([points_out, geo_pts], ignore_index=True)
-    return points_out
-
-def gaussian_moving_centre_v1(poly, num_points, centre, epsg=4326):
-    """
-    Return a GeoDataFrame containing a set of Gaussian distributed, random points
-    set within the bounds of the given geometry.
-
-    Works for both single and multiple geometries present in the gdf.
-
-    @type poly: geodataframe
-    @param poly: GDF containing polygons
-    @type num_points: integer
-    @param num_points: Number of uniform points to be generated within each geometry
-    """
-    points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
-
-    for geom in poly.geometry:
-        points_found = False
-        min_x, min_y, max_x, max_y = geom.bounds
-        cx, cy = centre.x, centre.y
-        sd_x = (max_y - min_y)/3
-        sd_y = (max_x - min_x)/3
-        cov = np.array([[sd_y**2, 0], [0, sd_x**2]])
-        while not points_found:
-            pts = pd.DataFrame(np.random.multivariate_normal((cx, cy), cov, size=int(round(num_points*4))), columns=['x','y'])
-            geo_pts = gpd.GeoDataFrame(geometry=gpd.points_from_xy(pts['x'], pts['y'], crs=epsg))
-            geo_pts = geo_pts.sjoin(gpd.GeoDataFrame(geometry=gpd.GeoSeries([geom]), crs=epsg), predicate='within')
-            if num_points < len(geo_pts):
-                geo_pts = geo_pts.sample(num_points)
-                points_found = True
-            else:
-                print("issue found in Gaussian moving centre")
                 print("generated points = ", len(geo_pts), ", sample size = ", num_points)
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
     return points_out
@@ -316,16 +153,11 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None):
 
 ########## VORONOI POLYGON GENERATION ##########
 
-def kmeans_centroids(poly, num_points, num_cluster, eq_area):
-    # Points are generated randomly in the polygon
-    if(eq_area == 0): # Uniform distribution
-        source = points_uniform(poly, num_points)  
-    else: # Centroid-focused distribution
-        source = points_centre(poly, num_points)
-
+def kmeans_centroids(poly, num_points, num_cluster):
+    source = points_uniform(poly, num_points)  
+    
     # The geometries of the Shapely points are converted to a numpy array for use in the kmeans algorithm
     feature_coords = np.array([[e.x, e.y] for e in source.geometry])
-
 
     # A kmeans object is created using the specified number of clusters
     kmeans = KMeans(num_cluster, random_state=glob_random_seed)
@@ -338,28 +170,10 @@ def kmeans_centroids(poly, num_points, num_cluster, eq_area):
 
     return gdf
 
-def moving_centroid(poly, epsg):
-    cx, cy = poly.centroid.x, poly.centroid.y
-    min_x, min_y, max_x, max_y = poly.bounds
 
-    range_x = (max_x - min_x) / 4
-    range_y = (max_y - min_y) / 16
-
-    centroid_gdf = gpd.GeoDataFrame(pd.DataFrame([Point([random.uniform(cx - range_x, cx + range_x), random.uniform(cy - range_y, cy + range_y)])], columns=['geometry']), geometry='geometry', crs=3857)
-
-    return centroid_gdf
-
-def voronoi_gen(poly, poly_centroid, vor_num=12, gen_type='eq', epsg=4326): #'eq', 'area', 'rand'
-    # Voronoi centroids are generated based on the specified generation type
-    if(gen_type == 'eq'): # Equal-area uniformly distributed Voronoi regions
-        vor_centroids = kmeans_centroids(poly, 500, vor_num, 0)
-    elif(gen_type == 'area'): # Variable area, centrally focused Voronoi regions
-        vor_centroids = kmeans_centroids(poly, 500, vor_num, 1)
-    elif(gen_type == 'rand'): # Equal-area uniformly distributed Voronoi regions (with moving centroid)
-        # Calculate moving centroid in an eliptical region around the original centroid
-        gdf_centroid = poly_centroid
-        vor_centroids = kmeans_centroids(poly, 500, vor_num, 0)
-    # Setting crs to meter based projection
+def voronoi_gen(poly, poly_centroid, vor_num=12, epsg=4326):
+    # Voronoi centroids
+    vor_centroids = kmeans_centroids(poly, 500, vor_num, 0)
 
     # Convert the boundary geometry into a union of the polygon
     #boundary_shape = cascaded_union(poly) Depreciated
@@ -367,51 +181,11 @@ def voronoi_gen(poly, poly_centroid, vor_num=12, gen_type='eq', epsg=4326): #'eq
     coords = points_to_coords(vor_centroids.geometry)
 
     # Calculating the voronoi regions
-    region_polys, region_pts = voronoi_regions_from_coords(coords, boundary_shape)
+    region_polys, _ = voronoi_regions_from_coords(coords, boundary_shape)
 
 
     df = pd.DataFrame(list(region_polys.items()), columns=['index','geometry'])
     gdf_poly = gpd.GeoDataFrame(df, geometry='geometry', crs=epsg)
-    return gdf_poly[['geometry']].reset_index(drop=True)
-    # Calculating distance of Voronoi polygons to the centroid (moving or original)
-    gdf_poly['dist_to_centre'] = 0.0
-    for i in range(vor_num):
-        if(gen_type == 'rand'):
-            current = gdf_poly['geometry'][i].centroid.distance(gdf_centroid.iloc[0].geometry)
-        else:
-            current = gdf_poly['geometry'][i].centroid.distance(
-            shapely.geometry.Point(poly.centroid.x, poly.centroid.y))
-        gdf_poly['dist_to_centre'][i] = current
-
-    # Assign a class to each polygon based on the distance to centroid
-    # This will produce five distinct regions centred around the given moving/original centroid
-
-
-    max_dist, min_dist = max(gdf_poly['dist_to_centre']), min(gdf_poly['dist_to_centre'])
-    dist_break = (max_dist - min_dist) / 5
-    gdf_poly['class'] = " "
-    gdf_poly = gdf_poly.sort_values(by='dist_to_centre')
-    gdf_poly['class'] = pd.cut(gdf_poly['dist_to_centre'], [0, dist_break, dist_break*2, dist_break*3, dist_break*4, np.inf], labels=[1,2,3,4,5])
-
-    # Circular buffer visualization
-    buffers = []
-    title = "Voronoi-based Buffer Generation:\n"
-    for i in range(5):
-        if gen_type != 'rand':
-            centroid = shapely.geometry.Point(poly.centroid.x, poly.centroid.y)
-            c_current = centroid.buffer(dist_break * (i + 1))
-            buffers.append(c_current)
-        else:
-            centroid = gdf_centroid#[0]
-            c_current = centroid.buffer(dist_break * (i + 1))
-            buffers.append(c_current)
-
-    circ_df = pd.DataFrame(buffers, columns=['geometry'])
-    #circ_gdf = gpd.GeoDataFrame(circ_df, geometry='geometry')
-
-    #vor_union = gdf_poly.dissolve(by='class', as_index=False)
-
-    #return gdf_poly.reset_index(drop=True).drop('index', axis=1)
     return gdf_poly[['geometry']].reset_index(drop=True)
 
 ########## ADDITIONAL METADATA FUNCTIONS
@@ -445,7 +219,6 @@ def gdf_poly_to_sql(table_name, gdf, directory):
         sqlFile.write(query)
     
     return
-
 
 def gdf_to_sql_new(gdf, table_name, directory):
 
@@ -520,7 +293,6 @@ def gdf_to_sql_new(gdf, table_name, directory):
 
     [write_insert(gdf.iloc[i:i+1, :]) for i in range(len(gdf))]
 
-
 def csv_distribute(filename, num_values):
     source = pd.read_csv(filename, encoding='latin-1')
     if source.shape[1] < 2:
@@ -543,7 +315,6 @@ def distribute_nans(df, percent=[5,10]):
             df.sort_index()
     
     return df
-
 
 def generate_vars(gdf, rand_var_dict, web=False):
     for var in rand_var_dict:
@@ -752,197 +523,6 @@ def get_roads_from_poly(bbox, epsg=3857):
     print("osmnx: time take = ", osmnx_end_ts - osmnx_start_ts)
     return all_roads
 
-def radian():
-    print("RADIAN (\u03C0) - Synthetic Spatial Data Generator")
-
-    star_width = 128
-    print('*' * star_width)
-
-    # Loading running parameters from 'parameters.json'
-    start_time = time.time()
-    params = json.load(open("parameters.json"))
-    set_seed = params["set_seed"]
-    directory = os.path.dirname(params["filepath"])
-    filepath = params["filepath"]
-    epsg = params['epsg']
-    total_pts = params["total_pts"]
-    gen_type = params["gen_type"]
-    ratio = (params["ratio"] / 100)
-    vor_num = params["vor_num"]
-    table_name = params["table_name"]
-    
-    random_var = params["random_var"]
-    random_var_dict = params["random_var_dict"]
-
-    rand_centroid = params["rand_centroid"]
-    to_sql = params["to_sql"]
-    to_geojson = params["to_geojson"]
-    vor_to_geojson = params["vor_to_geojson"]
-    vor_to_sql = params["vor_to_sql"]
-    plot = params["plot"]
-    basemap = params["basemap"]
-    preview = params["preview"]
-
-    null = params["missing_vals"]
-
-    extra_var = params["extra_var"]
-    extra_var_dict = params["extra_var_dict"]
-    
-
-    # Setting generation seed
-    global glob_random_seed
-    if set_seed:
-        glob_random_seed = params["seed"]
-        random.seed(glob_random_seed)
-    else:
-        glob_random_seed = random.randint(0, 2147483647)
-        random.seed(glob_random_seed)
-
-    print("* Generation seed: " + str(glob_random_seed))
-
-    ########### LOADING SOURCE POLYGON(s)
-
-    # Reading in the GeoJSON file, projecting to EPSG:3857 and checking for points density
-    print(f"* Reading {filepath}...")
-    file_name = os.path.basename(filepath)
-    _, file_extension = os.path.splitext(file_name)
-    if file_extension != '.geojson':
-        print("invalid polygon file - please use .geojson format")
-        return
-
-    source_gdf = gpd.read_file(filepath)
-
-    source_gdf = source_gdf.to_crs(epsg=3857)
-    source_area = source_gdf.to_crs(epsg=8858)
-    dens = total_pts/source_area.area[0]
-    if(dens > 1):
-        print("Points density too low: {} points in an area of {}".format(total_pts, source.area))
-        print("Minimum points density is 1 point / m^2.")
-        return
-
-    
-
-    ########## POINTS GENERATION ##########
-
-    source = source_gdf.loc[0, 'geometry']
-    
-    if(rand_centroid):
-        source_centroid = moving_centroid(source,epsg)
-    else:
-        source_centroid = source.centroid
-
-    primary_total, secondary_total = points_ratio(total_pts, ratio)
-
-    print(f"* Generating {primary_total} primary points and {secondary_total} secondary points in {file_name}")
-
-    print(f"* Primary generation using {'moving centroid' if rand_centroid else 'true centroid'}")
-    primary_points, primary_vor_polygons = primary_generation(source, source_centroid, primary_total, rand_centroid, epsg)
-
-    if gen_type == 0:
-        print(f"* No secondary generation.")
-    print(f"* Secondary generation with {'equal area voronoi regions' if gen_type == 1 else ('variable-area voronoi regions by area' if gen_type == 2 else 'variable-area voronoi with equal points')}")
-    secondary_points, local_vor_polygons = secondary_generation(source, source_centroid, secondary_total, gen_type, vor_num, epsg)
-
-
-    #print(f"* Actual generation: {len(primary_points)} primary points, {len(secondary_points)} secondary points")
-
-    # Merging the bulk and local point dataframes for output to SQL or GeoJSON
-
-    #gdf_out = gpd.GeoDataFrame(primary_points.append(secondary_points, ignore_index=True), crs=epsg)     
-    gdf_out = gpd.GeoDataFrame(pd.concat([primary_points, secondary_points], ignore_index=True), crs=epsg)     
-
-
-    print("* Points generated successfully!")
-    print('*' * star_width)
-
-    ########## ADDITIONAL METADATA GENERATION ##########
-
-    if random_var or extra_var:
-        print("Generating Metadata:")
-
-    if random_var:
-        gdf_out = generate_vars(gdf_out, random_var_dict)
-
-    if(extra_var):
-        #print("Generating metadata...")
-        for variable in extra_var_dict:
-            gdf_out[f'{variable["name"]}'] = csv_distribute(variable['source'], total_pts)
-
-
-    # Adding in null values last
-    if null > 0:
-        gdf_out = distribute_nans(gdf_out, null)
-
-    ########## EXPORTING OF DATA ##########
-
-    # Set exported CRS
-    gdf_out = gdf_out.to_crs(epsg)
-    source_gdf = source_gdf.to_crs(epsg) 
-
-       
-    # Exporting  data to GeoJSON
-    if(to_geojson):
-        if not os.path.exists(f"{directory}/GeoJSON"):
-            os.makedirs(f"{directory}/GeoJSON")
-        gdf_out.insert(0, 'PKID', range(0, len(gdf_out)))
-        gdf_out.to_file(f"{directory}/GeoJSON/{table_name}.geojson", driver='GeoJSON')
-        print("* Successfully created GeoJSON file {}.geojson with {} points".format(table_name, total_pts))
-
-    # Exporting data to SQL dump file
-    if(to_sql):
-        gdf_out.drop(['PKID'], axis=1) # Bit hacky here, but the geometry being renamed to thegeom caused issues - will come back to this?
-        if not os.path.exists(f"{directory}/SQL"):
-            os.makedirs(f"{directory}/SQL")
-        #def gdf_to_sql(table_name, gdf, num_rows, random_var, rand_var_types, rand_var_names, extra_var, extra_var_types, extra_var_name, extra_var_dict, directory):
-        #gdf_to_sql_old(table_name, gdf_out, total_pts, random_var, rand_var_types, rand_var_names, extra_var, extra_var_types, extra_var_name, extra_var_dict, directory)
-        
-        print("pre-sql gdf:", gdf_out.head())
-        
-        gdf_to_sql_new(gdf_out, table_name, directory)
-
-        print("post-sql gdf:", gdf_out.head())
-        print("* SQL dump file created: {} rows to {} with table name: {}.".format(total_pts, f'{directory}/SQL/{table_name}.sql', table_name))
-
-    # Exporting voronoi polygons
-    if(gen_type > 0 and vor_to_geojson):
-        # To GeoJSON
-        if not os.path.exists(f"{directory}/GeoJSON"):
-            os.makedirs(f"{directory}/GeoJSON")
-        # make copy of local vor polys to set class to correct type and then export that?
-        local_vor_polygons['class'] = local_vor_polygons['class'].astype(int)
-        local_vor_polygons.to_file(f"{directory}/GeoJSON/{table_name}_voronoi_polygons.geojson", driver='GeoJSON')
-        print("* Successfully created GeoJSON file {}_voronoi_polygons.geojson".format(table_name))
-
-    if(gen_type > 0 and vor_to_sql):
-        if not os.path.exists(f"{directory}/SQL"):
-            os.makedirs(f"{directory}/SQL")
-        # To SQL
-        gdf_poly_to_sql("voronoi_poly_test", local_vor_polygons, directory)
-        print("* SQL dump file created: {} rows to {} with table name: voronoi_poly_test.".format(total_pts, f'{directory}/SQL/{table_name}.sql'))
-
-    end_time = time.time()
-
-    ########## PRINTING GENERATION DIAGNOSTICS ##########
-    
-    print('*' * star_width)
-
-    print("Generation Information:")
-    
-    print("* Generation time taken = ", (end_time-start_time))
-
-    ########### DATA PREVIEW ##########
-
-    print('*' * star_width)
-
-    if(preview):
-        print(f"Data Preview: Total points: {len(gdf_out)}\n", gdf_out.head())
-
-    ########## PLOTTING DATA ##########()
-
-    if(plot):
-        plot_output(source_gdf, source_gdf.centroid, primary_vor_polygons, local_vor_polygons, local_vor_polygons.centroid, primary_points, secondary_points, basemap, epsg)
-
-    print('*' * star_width)
 
 def gauss_points(poly, num_points, epsg=4326):
     points_out = gpd.GeoDataFrame([])
@@ -1028,3 +608,5 @@ if __name__ == "__main__":
     bbox = gpd.read_file('bbox.geojson')
     for x in range(100):
         road_distribution(bbox, 100)
+
+

@@ -1,14 +1,14 @@
 import json
 import geopandas as gpd
-import radian
+import radian_web
 import shapely
 import numpy as np
 import pandas as pd
 import osmnx as ox
 import random
 
-from radian import points_uniform, gaussian_moving_centre, gaussian_centre
-from radian import get_roads_from_poly, road_distribution, generate_vars
+from radian_web import points_uniform, gaussian_moving_centre, gaussian_centre
+from radian_web import get_roads_from_poly, road_distribution, generate_vars
 
 from shapely import Polygon
 from flask import Flask, request, jsonify, render_template
@@ -23,17 +23,7 @@ app = Flask(__name__)
 @app.route('/', methods=['GET','POST'])
 def root():
     return render_template('index.html')
-"""
-    2D Covariance Matrix:
-    [var(x), cov(xy)]
-    [cov(xy), var(y)]
 
-    3D Covariance matrix
-    [[var(x), cov(x, y), cov(x,z)],
-     [cov(x,y), var(y), cov(y,z)],
-     [cov(x,z), cov(y,z), var(z)]
-    ]
-"""
 
 @app.route('/test', methods=['GET', 'POST'])
 def process():
@@ -122,7 +112,7 @@ def voronoi():
 
     # secondary generation
     if vor_number > 0:
-        voronoi_gdf = radian.voronoi_gen(gdf, centroid, vor_number)
+        voronoi_gdf = radian_web.voronoi_gen(gdf, centroid, vor_number)
     print(voronoi_gdf)
     return voronoi_gdf.to_json()
 
