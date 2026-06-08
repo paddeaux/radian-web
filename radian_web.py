@@ -4,44 +4,30 @@ Ported on Monday Sept 29 10:06am 2025
 Starting conversion to a Flask web application
 @author: paddy
 """
-# Package imports
+##################### Package imports #####################
 import random
-from random import randint
 import time
-
 import osmnx as ox
 import string
 import geopandas as gpd
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import warnings
 import exrex
 
-# voroni generation packages
+from random import randint
 from shapely.ops import unary_union
-
-# k-means clustering packages
 from sklearn.cluster import KMeans
-
-# misc json and shapely packages
-import shapely
 from shapely.geometry import Point
 from geovoronoi import voronoi_regions_from_coords, points_to_coords
-# This function takes in a Shapely Polygon object and returns a GeoDataFrame consisting of Voronoi-based buffers
-# centred around either the true centroid of the original Polygon, or around a randomly generated "moving centroid"
-# The function has three different forms of generation:
-# 'eq' = Equal-area Voronoi generation centred around the original polygon centroid
-# 'area' = Variable-area generation (Smaller Voronoi towards the centroid, larger towards the borders)
-# 'rand' = Equal-area Voronoi generation centred around a random "moving centroid"
 
 global glob_random_seed
 glob_random_seed = randint(0, 99999999)
 
-# Suppress depreciation warnings
+##################### Suppress depreciation warnings #####################
 warnings.filterwarnings('ignore')
 
-########## POINT GENERATION ##########
+##################### Generation Functions #####################
 
 def points_uniform(poly, num_points, epsg=4326):
     """
@@ -145,7 +131,44 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None):
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
     return points_out
 
-########## VORONOI POLYGON GENERATION ##########
+def road_distribution(roads, total_pts=100, road_offset=5, weighted=False, epsg=3857):
+    points = []
+    while len(points) < total_pts:
+        try :
+            random_road = roads.geometry.sample(1, weights=roads['length'] if weighted else None)
+            random_offset = random_road.offset_curve(random.uniform(-road_offset, road_offset))
+        except:
+            print("offending road =", random_road, " type=", random_road.geom_type)
+        
+        sampled_point = random_offset.interpolate(random.uniform(-random_road.length, random_road.length), normalized=False).reset_index(drop=True)
+        points.append(sampled_point.geometry[0])
+
+    points_gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(points), crs=epsg)
+
+    return points_gdf
+
+def get_roads_from_poly(bbox, epsg=3857):
+    # query overpassturbo for all roads within the given bounding box region.
+    tags = {'highway': True}
+    print("starting osmnx query...")
+    osmnx_start_ts = time.time()
+    roads = ox.features_from_polygon(bbox.geometry[0], tags)
+    roads = roads[(roads.geometry.type == "LineString") | (roads.geometry.type == "MultiLineString")]
+    roads_clip = gpd.clip(roads, bbox)
+
+    bbox = bbox.to_crs(epsg)
+    roads_clip = roads_clip.to_crs(epsg)
+    multi_roads = roads_clip[roads_clip.geometry.type == "MultiLineString"].geometry
+    single_roads = roads_clip[roads_clip.geometry.type == "LineString"].geometry
+
+    multi_to_single = [line for multiline in multi_roads.geometry for line in multiline.geoms]
+    all_roads = gpd.GeoDataFrame(geometry=(list(single_roads.geometry) + multi_to_single), crs=epsg)
+    all_roads['length'] = all_roads.geometry.length
+    osmnx_end_ts = time.time()
+    print("osmnx: time take = ", osmnx_end_ts - osmnx_start_ts)
+    return all_roads
+
+##################### Voronoi Generation #####################
 
 def kmeans_centroids(poly, num_points, num_cluster):
     source = points_uniform(poly, num_points)  
@@ -182,7 +205,7 @@ def voronoi_gen(poly, poly_centroid, vor_num=12, epsg=4326):
     gdf_poly = gpd.GeoDataFrame(df, geometry='geometry', crs=epsg)
     return gdf_poly[['geometry']].reset_index(drop=True)
 
-########## ADDITIONAL METADATA FUNCTIONS
+##################### METADATA FUNCTIONS #####################
 def gdf_poly_to_sql(table_name, gdf, directory):
     # initializes an SQL output file
     
@@ -332,47 +355,6 @@ def generate_vars(gdf, rand_var_dict, web=False):
                 return
     return gdf
 
-########### PRIMARY & SECONDARY GENERATION ##########
-
-
-############ RADIAN WEB ###############
-
-def road_distribution(roads, total_pts=100, road_offset=5, weighted=False, epsg=3857):
-    points = []
-    while len(points) < total_pts:
-        try :
-            random_road = roads.geometry.sample(1, weights=roads['length'] if weighted else None)
-            random_offset = random_road.offset_curve(random.uniform(-road_offset, road_offset))
-        except:
-            print("offending road =", random_road, " type=", random_road.geom_type)
-        
-        sampled_point = random_offset.interpolate(random.uniform(-random_road.length, random_road.length), normalized=False).reset_index(drop=True)
-        points.append(sampled_point.geometry[0])
-
-    points_gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(points), crs=epsg)
-
-    return points_gdf
-
-def get_roads_from_poly(bbox, epsg=3857):
-    # query overpassturbo for all roads within the given bounding box region.
-    tags = {'highway': True}
-    print("starting osmnx query...")
-    osmnx_start_ts = time.time()
-    roads = ox.features_from_polygon(bbox.geometry[0], tags)
-    roads = roads[(roads.geometry.type == "LineString") | (roads.geometry.type == "MultiLineString")]
-    roads_clip = gpd.clip(roads, bbox)
-
-    bbox = bbox.to_crs(epsg)
-    roads_clip = roads_clip.to_crs(epsg)
-    multi_roads = roads_clip[roads_clip.geometry.type == "MultiLineString"].geometry
-    single_roads = roads_clip[roads_clip.geometry.type == "LineString"].geometry
-
-    multi_to_single = [line for multiline in multi_roads.geometry for line in multiline.geoms]
-    all_roads = gpd.GeoDataFrame(geometry=(list(single_roads.geometry) + multi_to_single), crs=epsg)
-    all_roads['length'] = all_roads.geometry.length
-    osmnx_end_ts = time.time()
-    print("osmnx: time take = ", osmnx_end_ts - osmnx_start_ts)
-    return all_roads
 
 if __name__ == "__main__":
     print("Run server.py to launch the web-application.")
