@@ -10,7 +10,7 @@ from radian_web import points_uniform, gaussian_moving_centre, gaussian_centre
 from radian_web import get_roads_from_poly, road_distribution, generate_vars
 
 from flask import Flask, request, render_template
-from flask import send_from_directory
+from flask import send_from_directory, make_response
 
 glob_random_seed = random.randint(0,2147483647)
 random.seed(glob_random_seed)
@@ -119,12 +119,12 @@ def metadata():
     points = json.loads(request.data)
     gdf = gpd.GeoDataFrame.from_features(points['data']['features'])    
     metaDict = points['params']
+    place_name = points['place_name']
     for i, x in enumerate(metaDict):
         if x['type'] == 'str' or x['type'] == 'int':
             metaDict[i]['params'] = [int(n) for n in x['params']]
-    metadata_gdf = generate_vars(gdf, metaDict, True)
-    print(metadata_gdf.head())
-    return {'points': metadata_gdf.to_json() }
+    metadata_gdf = generate_vars(gdf, metaDict, place_name, True)
+    return {'points': metadata_gdf.drop('index_right', axis=1).to_json() if 'index_right' in metadata_gdf.columns else metadata_gdf.to_json()}
 
 @app.route('/save', methods=['GET', 'POST'])
 def save():
@@ -134,6 +134,10 @@ def save():
     gdf.to_file("static/gdf.geojson")
     return send_from_directory(directory="static", path="gdf.geojson", as_attachment=True)
 
+@app.route('/upload', methods=['POST'])
+def upload():
+    print(request.files)
+    return make_response('', 200)
 
 if __name__ == '__main__':
     app.run(host="localhost", port=8080, debug=False)

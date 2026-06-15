@@ -32,9 +32,18 @@ $(document).ready(function(){
     var polyCovarYZ = 0;
     var polyCovarXZ = 0;
     var polyArea = 0;
-    var areaLimit = 10 // area limit for Roads distirbution in Km^2
+    var areaLimit = 50  // area limit for Roads distirbution in Km^2
 
+    var search_term
     var metaDict = [];
+
+        function getRandomIntInclusive(min, max) {
+        const minCeiled = Math.ceil(min);
+        const maxFloored = Math.floor(max);
+        return Math.floor(Math.random() * (maxFloored - minCeiled + 1) + minCeiled); // The maximum is inclusive and the minimum is inclusive
+    }
+
+    var generationSeed = getRandomIntInclusive(0,9999999);
     /*
     polyGroup.on('layeradd', function (e) {
         if (e.layerType == 'rectangle') {
@@ -192,7 +201,7 @@ $(document).ready(function(){
             console.log('load boundary')
             document.getElementById("btn-map-load").disabled = true;
             var geojsonFeature;
-            var search_term = document.getElementById("location").value;
+            search_term = document.getElementById("location").value;
             if (search_term == "") {
                 alert("Location required!")
                 return
@@ -283,6 +292,21 @@ $(document).ready(function(){
         return layerMinusDiv;
     };
 
+    const seedInput = L.control({ position: 'topleft'});
+    seedInput.onAdd = () => {
+        const seedDiv = L.DomUtil.create('div', 'seed-wrapper');
+        seedDiv.innerHTML = `
+                <legend class="slide-legend">Generation Seed</legend>
+                <div class="tooltip">
+                <span class="tooltiptext tooltip-seed">Generation seed</span>
+                    <div class='slidecontainer seed'>
+                        <input type="number" value="" id="seed_input", class="gen_seed"/>
+                    </div>
+                </div>`;
+
+        return seedDiv;
+    }
+
     searchBar.addTo(map);
     disableDragging(searchBar);
     searchButton.addTo(map)
@@ -295,7 +319,11 @@ $(document).ready(function(){
         position: 'topleft'
     }).addTo(map);
     
-    
+    seedInput.addTo(map);
+    disableDragging(seedInput)
+
+    document.getElementById("seed_input").value = generationSeed
+
     // ***************************  bottomleft  ************************************
     
     const ratioSlider = L.control({ position: 'bottomleft'});
@@ -316,7 +344,7 @@ $(document).ready(function(){
         pointDiv.innerHTML = `
             <legend class="slide-legend">Number of Points</legend>
                 <div class='slidecontainer'>
-                    <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="50000" step="50" oninput="this.nextElementSibling.value = this.value;"/>
+                    <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="5000" step="25" oninput="this.nextElementSibling.value = this.value;"/>
                     <output class='param-text'>250</output>
                 </div>`;
         return pointDiv;
@@ -452,7 +480,7 @@ $(document).ready(function(){
             </div>`;
         roadDiv.addEventListener('click', () => {
             roadTimeStart = Date.now();
-
+            console.log("region area = ", polyArea/1000000)
             if(polyGroup.getLayers().length > 0) {
                 if((polyArea / 1000000) < areaLimit) {
                     $.ajax({
@@ -614,7 +642,8 @@ $(document).ready(function(){
                             contentType: "application/json",
                             data: JSON.stringify({
                                 'data' : lineGroup.toGeoJSON(),
-                                'params' : getParams()
+                                'params' : getParams(),
+                                'seed' : generationSeed
                             }),
                                 success: function(response){
                                     if (pointGroup.getLayers()[currentPointLayer].length > 0) {
@@ -739,6 +768,24 @@ $(document).ready(function(){
         return clearDiv;
     }
 
+    const clearRoadsButton = L.control({ position: 'topright'});
+    clearRoadsButton.onAdd = () => {
+        const clearRoadsDiv = L.DomUtil.create('div', 'clearroadsbutton-wrapper');
+        clearRoadsDiv.innerHTML = `
+        <div class="tooltip">
+            <span class="tooltiptext tooltip-left">Clear road data</span>
+            <button class='button btn-icon' id='btn-road-clear' title='Clear road data'><i class='fa-solid fa-xmark'></i></button>
+        </div>
+        `;
+        clearRoadsDiv.addEventListener('click', () => {
+            console.log('clear roads data')
+            readoutMessage("roads cleared.");
+            lineGroup.clearLayers();
+        });
+        return clearRoadsDiv;
+    }
+
+
     const addLayerButton = L.control({ position: 'topright'});
     addLayerButton.onAdd = () => {
         const addLayerDiv = L.DomUtil.create('div', 'addlayer-wrapper');
@@ -800,6 +847,23 @@ $(document).ready(function(){
         return downDiv;
     }
 
+    const downloadRoads = L.control({ position: 'topright'});
+    downloadRoads.onAdd = () => {
+        const downRoadDiv = L.DomUtil.create('div', 'download-road-wrapper');
+        downRoadDiv.innerHTML = `
+            <div class="tooltip">
+                <span class="tooltiptext tooltip-left">Download loaded road network</span>
+            <button class='button btn-icon' id='btn-road-download' title='Download road data'><i class='fa-solid fa-download'></i></button>
+            </div>
+            `;
+        downRoadDiv.addEventListener('click', () => {
+            console.log('download road network data');
+            document.getElementById('btn-road-download').disabled = true;
+            saveLayer(lineGroup);
+            document.getElementById('btn-road-download').disabled = false;
+        });
+        return downRoadDiv;
+    }
 
     var varSettings = "";
 
@@ -840,6 +904,22 @@ $(document).ready(function(){
                     <input type='text' id='regex_var' name='regex_var' placeholder='\\d{3}-\\d{4}-[aeiou]{3}'>
                 </div>
             `;
+        } else if (document.getElementById('var_choice').value == "osm") {
+            document.getElementById('meta_options').innerHTML = `
+                <div>
+                    <label for="osm_tag">Amenity =</label>
+                        <datalist id="amenities">
+                            <option value="restaurant">
+                            <option value="bar">
+                            <option value="cafe">
+                            <option value="fast_food">
+                            <option value="pub">
+                            <option value="school">
+                            <option value="atm">
+                        </datalist>
+                    <input type="search" id='osm_tag' name='osm_tag' list="amenities">
+                </div>
+            `;
         } else {
             document.getElementById('meta_options').innerHTML = "none";
         }
@@ -857,6 +937,7 @@ $(document).ready(function(){
                         <option value="str">String</option>
                         <option value="ts">Timestamp</option>
                         <option value="regex">Regular Expression</option>
+                        <option value="osm">OSM Tag Data</option>
                     </select>
                     <div id='meta_options'></div>
                     <div>
@@ -886,7 +967,6 @@ $(document).ready(function(){
         `;
         return metaReadDiv;
     }
-
 
     const covReadout = L.control({ position: 'bottomright'});
     covReadout.onAdd = () => {
@@ -975,17 +1055,24 @@ $(document).ready(function(){
     disableDragging(getRoads);
     clearButton.addTo(map);
     disableDragging(clearButton);
+    clearRoadsButton.addTo(map);
+    disableDragging(clearRoadsButton);
     downloadButton.addTo(map);
     disableDragging(downloadButton);
+    downloadRoads.addTo(map);
+    disableDragging(downloadRoads);
+
     covReadout.addTo(map);
     disableDragging(covReadout);
     metaChoice.addTo(map);
     disableDragging(metaChoice);
+    
 
 
     document.getElementById('covar_reset').addEventListener('click', function (e) {
         setCov2D();
     });
+
 
     document.getElementById('var_choice').addEventListener('change', function (e) {
         updateChoice();
@@ -1020,6 +1107,8 @@ $(document).ready(function(){
             varSettings.push(document.getElementById('str_len').value);
         } else if(varChoice == 'regex') {
             varSettings.push(document.getElementById('regex_var').value);
+        } else if(varChoice == 'osm') {
+            varSettings.push(document.getElementById('osm_tag').value);
         }
         
         metaCol = {type: varChoice, name: varName, params: varSettings}
@@ -1063,6 +1152,7 @@ $(document).ready(function(){
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({
+                        'place_name' : search_term,
                         'data' : pointGroup.toGeoJSON(),
                         'params' : metaDict
                     }),
@@ -1135,7 +1225,6 @@ $(document).ready(function(){
 
     var layerPopup;
     pointGroup.getLayers()[0].on('mouseover', function(e){
-        console.log("squeak squeak squeak")
         var pointMeta = e.layer.feature.properties
         var coordinates = e.layer.feature.geometry.coordinates;
         var swapped_coordinates = [coordinates[1], coordinates[0]];  //Swap Lat and Lng
@@ -1147,7 +1236,6 @@ $(document).ready(function(){
         }
     });
     pointGroup.getLayers()[0].on('mouseout', function (e) {
-        console.log("cheese")
         if (layerPopup && map) {
             map.closePopup(layerPopup);
             layerPopup = null;

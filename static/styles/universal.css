@@ -219,6 +219,15 @@ p {
     font-size: 12px;
 }
 
+.seed {
+    transform: translate(440%, -690%);
+    font-size: 16px;
+    width: 128px;
+}
+
+.gen_seed {
+    max-width:100%
+}
 
 .slide-long {
     width: 384px;
@@ -339,6 +348,12 @@ p {
     bottom: 100%;
     left: 65%;
     transform: translate(-50%, 300%);
+}
+
+.tooltip-seed {
+    bottom: 100%;
+    left: 65%;
+    transform: translate(330%, -800%);
 }
 
 .tooltip-search {

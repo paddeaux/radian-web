@@ -333,7 +333,7 @@ def distribute_nans(df, percent=[5,10]):
     
     return df
 
-def generate_vars(gdf, rand_var_dict, web=False):
+def generate_vars(gdf, rand_var_dict, place_name, web=False):
     for var in rand_var_dict:
         match var['type']:
             case 'int':
@@ -351,6 +351,13 @@ def generate_vars(gdf, rand_var_dict, web=False):
                     gdf[f"{var['name']}"] = list(np.random.randint(ts_start, ts_end, len(gdf.index)))
                 else:
                     gdf[f"{var['name']}"] = list(pd.to_datetime(np.random.randint(ts_start, ts_end, len(gdf.index)), unit='s'))
+            case 'osm':
+                amenities = ox.features_from_place(place_name, {'amenity' : var['params'][0]}).reset_index(drop=True)['name'].dropna()
+                names = amenities.sample(len(gdf.index), replace=True if len(amenities) < len(gdf.index) else False).reset_index(drop=True)
+                print("how many we got? = ", sum(names.isnull()))
+                print("names = ", names, "\ngdf = ", gdf.index)
+                gdf[f"{var['name']}"] = names
+                print("NaN values = ", sum(gdf[f"{var['name']}"].isna()))
             case _:
                 return
     return gdf
