@@ -220,7 +220,7 @@ p {
 }
 
 .seed {
-    transform: translate(440%, -690%);
+    transform: translate(440%, -640%);
     font-size: 16px;
     width: 128px;
 }
@@ -353,7 +353,7 @@ p {
 .tooltip-seed {
     bottom: 100%;
     left: 65%;
-    transform: translate(330%, -800%);
+    transform: translate(330%, -725%);
 }
 
 .tooltip-search {

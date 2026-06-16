@@ -296,7 +296,6 @@ $(document).ready(function(){
     seedInput.onAdd = () => {
         const seedDiv = L.DomUtil.create('div', 'seed-wrapper');
         seedDiv.innerHTML = `
-                <legend class="slide-legend">Generation Seed</legend>
                 <div class="tooltip">
                 <span class="tooltiptext tooltip-seed">Generation seed</span>
                     <div class='slidecontainer seed'>
@@ -907,7 +906,15 @@ $(document).ready(function(){
         } else if (document.getElementById('var_choice').value == "osm") {
             document.getElementById('meta_options').innerHTML = `
                 <div>
-                    <label for="osm_tag">Amenity =</label>
+                    <label for="osm_tag">OSM Tag =</label>
+                    <datalist id="osm_tags">
+                            <option value="amenity">
+                            <option value="building">
+                            <option value="emergency">
+                            <option value="shop">
+                            <option value="emergency">
+                        </datalist>
+                    <input type="search" id='osm_tag' name='osm_tag' list="osm_tags">
                         <datalist id="amenities">
                             <option value="restaurant">
                             <option value="bar">
@@ -917,9 +924,14 @@ $(document).ready(function(){
                             <option value="school">
                             <option value="atm">
                         </datalist>
-                    <input type="search" id='osm_tag' name='osm_tag' list="amenities">
+                    <input type="search" id='osm_value' name='osm_value' list="amenities">
                 </div>
             `;
+        } else if (document.getElementById('var_choice').value == "name") {
+                document.getElementById('meta_options').innerHTML = `<div>
+                    <label for="random_name">Regular Expression</label>
+                    This option will procedurally generate a column of random people's names
+                </div>`;
         } else {
             document.getElementById('meta_options').innerHTML = "none";
         }
@@ -938,6 +950,7 @@ $(document).ready(function(){
                         <option value="ts">Timestamp</option>
                         <option value="regex">Regular Expression</option>
                         <option value="osm">OSM Tag Data</option>
+                        <option value="name">Random Person's Name</option>
                     </select>
                     <div id='meta_options'></div>
                     <div>
@@ -1109,6 +1122,9 @@ $(document).ready(function(){
             varSettings.push(document.getElementById('regex_var').value);
         } else if(varChoice == 'osm') {
             varSettings.push(document.getElementById('osm_tag').value);
+            varSettings.push(document.getElementById('osm_value').value);
+        } else if(varChoice == 'name') {
+            varSettings.push(true);
         }
         
         metaCol = {type: varChoice, name: varName, params: varSettings}
@@ -1144,6 +1160,7 @@ $(document).ready(function(){
     var metaDataTimeEnd;
     document.getElementById('button_gen_metadata').addEventListener('click', function (e) {
         metaDataTimeStart = Date.now();
+        openLoadingMessage("Generating metadata...")
         console.log("length of pointGroup[0], post metadata:", pointGroup.getLayers()[0].length)
         if(pointGroup.getLayers().length > 0) {
             if(varNumber > 0) {
@@ -1205,7 +1222,7 @@ $(document).ready(function(){
             console.log(errMsg);
             readoutMessage(errMsg);
         }
-        
+        closeLoadingMessage()
     });
 
     function formatMeta(dict) {
@@ -1246,6 +1263,15 @@ $(document).ready(function(){
         document.getElementById('readout-panel').innerHTML = msg;
         $('#readout-panel').hide().fadeIn(400);
         $('#readout-panel').delay(time).fadeOut(400);
+    }
+
+    function openLoadingMessage(msg) {
+        document.getElementById('readout-panel').innerHTML = msg;
+        $('#readout-panel').hide().fadeIn(400);
+    }
+
+    function closeLoadingMessage() {
+        $('#readout-panel').fadeOut(400);
     }
 
     let welcomeMessage = `

@@ -6,7 +6,7 @@ Starting conversion to a Flask web application
 """
 ##################### Package imports #####################
 import random
-import time
+import timeq
 import osmnx as ox
 import string
 import geopandas as gpd
@@ -20,6 +20,7 @@ from shapely.ops import unary_union
 from sklearn.cluster import KMeans
 from shapely.geometry import Point
 from geovoronoi import voronoi_regions_from_coords, points_to_coords
+from names_generator import generate_name
 
 global glob_random_seed
 glob_random_seed = randint(0, 99999999)
@@ -352,12 +353,16 @@ def generate_vars(gdf, rand_var_dict, place_name, web=False):
                 else:
                     gdf[f"{var['name']}"] = list(pd.to_datetime(np.random.randint(ts_start, ts_end, len(gdf.index)), unit='s'))
             case 'osm':
-                amenities = ox.features_from_place(place_name, {'amenity' : var['params'][0]}).reset_index(drop=True)['name'].dropna()
+                print("querying osm...")
+                amenities = ox.features_from_place(place_name, {var['params'][0] : var['params'][1]}).reset_index(drop=True)['name'].dropna()
+                print("done")
                 names = amenities.sample(len(gdf.index), replace=True if len(amenities) < len(gdf.index) else False).reset_index(drop=True)
                 print("how many we got? = ", sum(names.isnull()))
                 print("names = ", names, "\ngdf = ", gdf.index)
                 gdf[f"{var['name']}"] = names
                 print("NaN values = ", sum(gdf[f"{var['name']}"].isna()))
+            case 'name':
+                gdf[f"{var['name']}"] = [generate_name(style='capital') for x in range(len(gdf.index))]
             case _:
                 return
     return gdf
