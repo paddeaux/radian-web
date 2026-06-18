@@ -34,7 +34,8 @@ def process():
     points_split = poly['params']['points_split']
     centroid = shapely.Point(poly['centroid']['geometry']['coordinates'])
     covar = poly['params']['covar']
-
+    layer = poly['params']['layer']
+    
     print("covariance matrix:\n", covar)
     #min_x, min_y, max_x, max_y = gdf.bounds
     #cx, cy = centroid.x, centroid.y
@@ -51,7 +52,7 @@ def process():
         primary = int(np.ceil(num_points * (points_split/100)))
         secondary = num_points - primary
         vor_points = int(np.ceil(secondary / vor_number))
-        vor_points_gdf = gaussian_centre(voronoi, vor_points)
+        vor_points_gdf = gaussian_centre(voronoi, vor_points, layer)
         vor_points_gdf = vor_points_gdf.sample(secondary).reset_index(drop=True)
     else:
         primary = num_points
@@ -59,9 +60,9 @@ def process():
     print("generating primary points")
     # primary generation
     if gen_type == 1:
-        points_gdf = gaussian_moving_centre(gdf, primary, centroid, 4326, covar)
+        points_gdf = gaussian_moving_centre(gdf, primary, centroid, 4326, covar, layer)
     else:
-        points_gdf = points_uniform(gdf, primary)
+        points_gdf = points_uniform(gdf, primary, layer)
 
     # combine primary and secondary points
     
@@ -96,7 +97,7 @@ def get_roads():
 def get_road_points():
     request_json = json.loads(request.data)
     roads = gpd.GeoDataFrame.from_features(request_json['data']['features'], crs=4326).to_crs(3857)
-    road_points = road_distribution(roads, request_json['params']['num_points'], road_offset=request_json['params']['road_offset'], weighted=True)
+    road_points = road_distribution(roads, request_json['params']['num_points'], road_offset=request_json['params']['road_offset'], weighted=True, layer=request_json['params']['layer'])
     return {
         'points': road_points.to_crs(4326).to_json(),
     }

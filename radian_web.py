@@ -30,7 +30,7 @@ warnings.filterwarnings('ignore')
 
 ##################### Generation Functions #####################
 
-def points_uniform(poly, num_points, epsg=4326):
+def points_uniform(poly, num_points, epsg=4326, layer=0):
     """
     Return a GeoDataFrame containing a set of uniformly distributed, random points
     set within the bounds of the given geometry.
@@ -54,10 +54,11 @@ def points_uniform(poly, num_points, epsg=4326):
         gdf = gdf.sjoin(poly, predicate='within')
         gdf = gdf[['geometry']].iloc[0:num_points].reset_index(drop=True)
         points_out = pd.concat([points_out, gdf], ignore_index=True)
+    points_out['layer'] = [layer for x in range(len(points_out.index))]
     return points_out
 
 
-def gaussian_centre(poly, num_points, epsg=4326):
+def gaussian_centre(poly, num_points, epsg=4326, layer=0):
     """
     Return a GeoDataFrame containing a set of Gaussian distributed, random points
     set within the bounds of the given geometry.
@@ -91,9 +92,10 @@ def gaussian_centre(poly, num_points, epsg=4326):
                 print("issue found")
                 print("generated points = ", len(geo_pts), ", sample size = ", num_points)
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
+        points_out['layer'] = [layer for x in range(len(points_out.index))]
     return points_out
 
-def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None):
+def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None, layer=0):
     """
     Return a GeoDataFrame containing a set of Gaussian distributed, random points
     set within the bounds of the given geometry.
@@ -130,9 +132,10 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None):
                 i += 1
                 
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
+        points_out['layer'] = [layer for x in range(len(points_out.index))]
     return points_out
 
-def road_distribution(roads, total_pts=100, road_offset=5, weighted=False, epsg=3857):
+def road_distribution(roads, total_pts=100, road_offset=5, weighted=False, epsg=3857, layer=0):
     points = []
     while len(points) < total_pts:
         try :
@@ -145,7 +148,7 @@ def road_distribution(roads, total_pts=100, road_offset=5, weighted=False, epsg=
         points.append(sampled_point.geometry[0])
 
     points_gdf = gpd.GeoDataFrame(geometry=gpd.GeoSeries(points), crs=epsg)
-
+    points_gdf['layer'] = [layer for x in range(len(points_gdf.index))]
     return points_gdf
 
 def get_roads_from_poly(bbox, epsg=3857):

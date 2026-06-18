@@ -643,7 +643,8 @@ $(document).ready(function(){
                             data: JSON.stringify({
                                 'data' : lineGroup.toGeoJSON(),
                                 'params' : getParams(),
-                                'seed' : generationSeed
+                                'seed' : generationSeed,
+                                'layer' : currentPointLayer
                             }),
                                 success: function(response){
                                     if (pointGroup.getLayers()[currentPointLayer].length > 0) {
@@ -692,7 +693,8 @@ $(document).ready(function(){
                             'data' : polyGroup.toGeoJSON(),
                             'params' : getParams(),
                             'centroid' : getCentroid().toGeoJSON(),
-                            'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null
+                            'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null,
+                            'layer': currentPointLayer
                         }),
                             success: function(response){
                                 if (JSON.parse(response['points']).features.length == 0) {
