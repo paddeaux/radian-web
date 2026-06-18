@@ -1,0 +1,81 @@
+{
+    "scenario1": {
+        "location": "Dublin, Ireland",
+        "points": 1500,
+        "distribution": "uniform",
+        "metadata": [],
+        "context":"random uniform points without context"
+    },
+    "scenario2": {
+        "location": "Greater London, UK",
+        "points": 2500,
+        "distribution": "Gaussian",
+        "voronoi": 6,
+        "ratio": "70:30",
+        "covariance": [
+            [0.035,     0],
+            [0    , 0.010]
+        ],
+        "metadata": [
+            {"osm":"amenity=restaurant"},
+            {"integer": "(100000,999999)"},
+            {"regex": "[A-Z]{2}-\\d{2,3}-[AEIOU]{2}"}
+        ],
+        "context":"restaurants in London, primary generation only, phone number and post code, time taken for OSM 152.989 seconds, subsequent 1.616 seconds, 1.787, 3.179"
+    },
+    "scenario3": {
+        "location": "Greater London, UK",
+        "points": 2500,
+        "distribution": "Gaussian",
+        "voronoi": 12,
+        "ratio": "30:70",
+        "covariance": [
+            [0.035, 0],
+            [0, 0.01]
+        ],
+        "metadata": [
+            {"osm":"amenity=bar"},
+            {"integer": "(50,200)"},
+            {"regex": "0[1|((86)|(87)|(89))] \\d{7}"}
+        ],
+        "context": "bars in London, using Voronoi only, max capacity and phone number, 0.68 seconds taken, 1.246 seconds"
+    },
+    "scenario4": {
+        "location": "Bilbao, Biscay, Autonomous Community of the Basque Country",
+        "points": 500,
+        "distribution": "roads",
+        "roadoffset": 5,
+        "metadata": [
+            {"integer": "(1000,9999)"},
+            {"timestamp": ["00:00:00 01/01/2026", "23:59:59 31/12/2026"]},
+            {"regex": "\\d{3}:[a-k]\\d{2}\\d{3,4}"}
+        ],
+        "context":"motion detected security cameras in Bilbao, lastEntryID, lastEntryTimeStamp, serialCode, roads took 14.67 seconds to download"
+    },
+    "scenario5": {
+        "location": "(portion of) Berlin, Germany",
+        "points": 5000,
+        "distribution": ["uniform=1000", "gaussian=2000", "roads=2000"],
+        "voronoi":6,
+        "ratio":"50:50",
+        "roadoffset": 8,
+        "metadata": [
+            {"regex": "\\d{2,3}-[A-Z]{1,2}-\\d{1,4}"},
+            {"timestamp": ["00:00:00 01/01/2026", "23:59:59 31/12/2026"]},
+            {"timestamp": ["00:00:00 01/01/2026", "23:59:59 31/12/2026"]}
+        ],
+        "context":"motion detected security cameras in Bilbao, lastEntryID, lastEntryTimeStamp, serialCode, roads took 22.06 seconds,"
+    },
+    "scenario6": {
+        "location": "Paris, France",
+        "points": 5000,
+        "distribution": ["gaussain (additive layering)"],
+        "metadata": [
+            {"name":"person's name"},
+            {"integer": "(1,200)"},
+            {"timestamp": ["00:00:00 01/01/1986", "23:59:59 31/12/2006"]},
+            {"regex":"[M|F|NB]"}
+        ],
+        "context":"dataset of people located via social media use, daily post count, date of birth, gender info"
+    }
+}

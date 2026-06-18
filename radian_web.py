@@ -6,7 +6,7 @@ Starting conversion to a Flask web application
 """
 ##################### Package imports #####################
 import random
-import timeq
+import time
 import osmnx as ox
 import string
 import geopandas as gpd
@@ -191,7 +191,7 @@ def kmeans_centroids(poly, num_points, num_cluster):
 
 def voronoi_gen(poly, poly_centroid, vor_num=12, epsg=4326):
     # Voronoi centroids
-    vor_centroids = kmeans_centroids(poly, 500, vor_num, 0)
+    vor_centroids = kmeans_centroids(poly, 500, vor_num)
 
     # Convert the boundary geometry into a union of the polygon
     #boundary_shape = cascaded_union(poly) Depreciated

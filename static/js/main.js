@@ -37,7 +37,7 @@ $(document).ready(function(){
     var search_term
     var metaDict = [];
 
-        function getRandomIntInclusive(min, max) {
+    function getRandomIntInclusive(min, max) {
         const minCeiled = Math.ceil(min);
         const maxFloored = Math.floor(max);
         return Math.floor(Math.random() * (maxFloored - minCeiled + 1) + minCeiled); // The maximum is inclusive and the minimum is inclusive
@@ -231,6 +231,7 @@ $(document).ready(function(){
                 polyVar_x_org = polyVar_x
                 polyVar_y_org = polyVar_y
                 map.fitBounds(polyGroup.getBounds());
+                markersGroup.clearLayers()
                 refreshInfo();
                 setCov2D();
             })
@@ -864,6 +865,42 @@ $(document).ready(function(){
         return downRoadDiv;
     }
 
+    const downloadVor = L.control({ position: 'topright'});
+    downloadVor.onAdd = () => {
+        const downVorDiv = L.DomUtil.create('div', 'download-vor-wrapper');
+        downVorDiv.innerHTML = `
+            <div class="tooltip">
+                <span class="tooltiptext tooltip-left">Download loaded voronoi polygons</span>
+            <button class='button btn-icon' id='btn-vor-download' title='Download voronoi polygons'><i class='fa-solid fa-download'></i></button>
+            </div>
+            `;
+        downVorDiv.addEventListener('click', () => {
+            console.log('download voronoi polygons');
+            document.getElementById('btn-vor-download').disabled = true;
+            saveLayer(vorGroup);
+            document.getElementById('btn-vor-download').disabled = false;
+        });
+        return downVorDiv;
+    }
+
+    const downloadDraw = L.control({ position: 'topright'});
+    downloadDraw.onAdd = () => {
+        const downDrawnDiv = L.DomUtil.create('div', 'download-draw-wrapper');
+        downDrawnDiv.innerHTML = `
+            <div class="tooltip">
+                <span class="tooltiptext tooltip-left">Download drawn polygon</span>
+            <button class='button btn-icon' id='btn-drawn-download' title='Download drawn polygon'><i class='fa-solid fa-download'></i></button>
+            </div>
+            `;
+        downDrawnDiv.addEventListener('click', () => {
+            console.log('download drawn polygons');
+            document.getElementById('btn-draw-download').disabled = true;
+            saveLayer(drawnGroupGroup);
+            document.getElementById('btn-draw-download').disabled = false;
+        });
+        return downDrawnDiv;
+    }
+
     var varSettings = "";
 
     function updateChoice() {
@@ -1037,8 +1074,8 @@ $(document).ready(function(){
         console.log("resetting covariance matrix")
         document.getElementById('var_y').value = (polyVar_y_org**2).toFixed(6);
         document.getElementById('var_x').value = (polyVar_x_org**2).toFixed(6);
-        document.getElementById('covar_yx_a').value = (polyCovarXY).toFixed(6);
-        document.getElementById('covar_yx_b').value = (polyCovarXY).toFixed(6);
+        document.getElementById('covar_yx_a').value = parseFloat(polyCovarXY).toFixed(6);
+        document.getElementById('covar_yx_b').value = parseFloat(polyCovarXY).toFixed(6);
 
         polyCoVar = [
             [polyVar_x_org, polyCovarXY],
@@ -1074,6 +1111,10 @@ $(document).ready(function(){
     disableDragging(downloadButton);
     downloadRoads.addTo(map);
     disableDragging(downloadRoads);
+    downloadVor.addTo(map);
+    disableDragging(downloadVor);
+    downloadDraw.addTo(map);
+    disableDragging(downloadDraw);
 
     covReadout.addTo(map);
     disableDragging(covReadout);
