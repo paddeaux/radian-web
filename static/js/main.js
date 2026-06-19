@@ -16,7 +16,7 @@ $(document).ready(function(){
     var drawnGroup = L.featureGroup();
     var lineGroup = L.featureGroup();
 
-    var maxPointLayers = 15;
+    var maxPointLayers = 10;
     var currentPointLayer = 0;
     var additivePoints = false;
 
@@ -115,7 +115,10 @@ $(document).ready(function(){
 
 
     function pointMarkers(colourIndex) {
-        colourList = ["#ff7800", "#f2ff00", "#59ff00", "#00ccff", "#dd00ff"];
+        colourList = [
+            "#ff7800", "#f2ff00", "#59ff00", "#00ccff", "#dd00ff",
+            "#ec2c0a", "#c1c929", "#36850c", "#0d6b83", "#e4a5ee"
+        ];
         return {
             radius: 4,
             fillColor: `${colourList[colourIndex]}`,
@@ -152,7 +155,8 @@ $(document).ready(function(){
             "vor_number" : +document.getElementById("vor_number").value,
             "points_split": +document.getElementById("points_split").value,
             "road_offset": +document.getElementById("road_buffer").value,
-            "covar" : polyCoVar
+            "covar" : polyCoVar,
+            "layer": currentPointLayer
         }
     }
  
@@ -613,6 +617,28 @@ $(document).ready(function(){
         return genVorDiv;
     };
 
+
+    var layerPopup;
+    function setupPointLayer(layer) {
+        layer.on('mouseover', function(e){
+            var pointMeta = e.layer.feature.properties
+            var coordinates = e.layer.feature.geometry.coordinates;
+            var swapped_coordinates = [coordinates[1], coordinates[0]];  //Swap Lat and Lng
+            if (map) {
+                layerPopup = L.popup()
+                .setLatLng(swapped_coordinates)
+                .setContent(formatMeta(pointMeta))
+                    .openOn(map);            
+            }
+        });
+        layer.on('mouseout', function (e) {
+            if (layerPopup && map) {
+                map.closePopup(layerPopup);
+                layerPopup = null;
+            }
+        });
+    }
+
     var pointTimeStart;
     var pointTimeEnd;
     const generateButton = L.control({ position: 'topright' });
@@ -632,6 +658,7 @@ $(document).ready(function(){
                 readoutMessage("Please load/draw an area boundary before generating a dataset.");
                 return;
             }
+
             if(getParams()['num_points'] > 0) {
                 // Road distribution
                 if(getParams()['gen_type'] == 2) {
@@ -643,8 +670,7 @@ $(document).ready(function(){
                             data: JSON.stringify({
                                 'data' : lineGroup.toGeoJSON(),
                                 'params' : getParams(),
-                                'seed' : generationSeed,
-                                'layer' : currentPointLayer
+                                'seed' : generationSeed
                             }),
                                 success: function(response){
                                     if (pointGroup.getLayers()[currentPointLayer].length > 0) {
@@ -659,9 +685,9 @@ $(document).ready(function(){
                                     console.log("added points")
                                     pointTimeEnd = Date.now() - pointTimeStart;
                                     console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
-                                    if(additivePoints & (currentPointLayer < maxPointLayers)) {
-                                        currentPointLayer++;
-                                    }
+                                    //if(additivePoints & (currentPointLayer < maxPointLayers)) {
+                                    //    currentPointLayer++;
+                                    //}
                                 },
                                 error: function(response){
                                     console.log("we dun goofed")
@@ -693,8 +719,7 @@ $(document).ready(function(){
                             'data' : polyGroup.toGeoJSON(),
                             'params' : getParams(),
                             'centroid' : getCentroid().toGeoJSON(),
-                            'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null,
-                            'layer': currentPointLayer
+                            'voronoi' : vorGroup.getLayers().length > 0 ? vorGroup.toGeoJSON() : null
                         }),
                             success: function(response){
                                 if (JSON.parse(response['points']).features.length == 0) {
@@ -704,7 +729,6 @@ $(document).ready(function(){
                                 } else {
                                     if(additivePoints) {
                                         if(currentPointLayer < maxPointLayers) {
-                                            currentPointLayer++;
                                             pointGroup.addLayer(L.featureGroup())
                                         } else {
                                             pointGroup.getLayers()[currentPointLayer].clearLayers();
@@ -715,7 +739,7 @@ $(document).ready(function(){
 
                                     console.log("point layer list:", pointGroup.getLayers())
                                     console.log("[currentPointLayer]", pointGroup.getLayers()[currentPointLayer])
-                                    
+                                    setupPointLayer(pointGroup.getLayers()[currentPointLayer])
                                     L.geoJSON(JSON.parse(response['points']), {
                                         pointToLayer: function (feature, latlng) {
                                             return L.circleMarker(latlng, pointMarkers(currentPointLayer));
@@ -736,6 +760,13 @@ $(document).ready(function(){
                                     pointTimeEnd = Date.now() - pointTimeStart;
                                     console.log(`Point generation - Time taken = ${pointTimeEnd / 1000} seconds`);
                                     console.log("current layer:", currentPointLayer);
+                                    if(additivePoints) {
+                                        if(currentPointLayer < maxPointLayers) {
+                                            if(pointGroup.getLayers()[0].length != 0) {
+                                                currentPointLayer++
+                                            }
+                                    }
+            } 
                                 }
                             }
                     });
@@ -744,7 +775,7 @@ $(document).ready(function(){
             } else {
                 console.log("no points value.");
                 readoutMessage("Please select a points value with the points slider.");
-            }
+            }  
         });
         return genDiv;
     };
@@ -1283,6 +1314,7 @@ $(document).ready(function(){
     };
 
 
+    /*
     var layerPopup;
     pointGroup.getLayers()[0].on('mouseover', function(e){
         var pointMeta = e.layer.feature.properties
@@ -1301,7 +1333,7 @@ $(document).ready(function(){
             layerPopup = null;
         }
     });
-
+    */
     function readoutMessage(msg, time=5000) {
         document.getElementById('readout-panel').innerHTML = msg;
         $('#readout-panel').hide().fadeIn(400);

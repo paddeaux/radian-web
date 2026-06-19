@@ -52,7 +52,7 @@ def process():
         primary = int(np.ceil(num_points * (points_split/100)))
         secondary = num_points - primary
         vor_points = int(np.ceil(secondary / vor_number))
-        vor_points_gdf = gaussian_centre(voronoi, vor_points, layer)
+        vor_points_gdf = gaussian_centre(voronoi, vor_points, layer=layer)
         vor_points_gdf = vor_points_gdf.sample(secondary).reset_index(drop=True)
     else:
         primary = num_points
@@ -62,7 +62,7 @@ def process():
     if gen_type == 1:
         points_gdf = gaussian_moving_centre(gdf, primary, centroid, 4326, covar, layer)
     else:
-        points_gdf = points_uniform(gdf, primary, layer)
+        points_gdf = points_uniform(gdf, primary, 4326, layer)
 
     # combine primary and secondary points
     
