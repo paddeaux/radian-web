@@ -1038,7 +1038,7 @@ $(document).ready(function(){
         const metaReadDiv = L.DomUtil.create('div', 'meta-list-wrapper');
         metaReadDiv.innerHTML = `
                 <legend class="slide-legend">Attributes</legend>
-                <div class='slidecontainer'>
+                <div class='slidecontainer slide-long'>
                     <table class='metadata-table'>
                         <tr>
                             <th>Variable Name</th>
@@ -1140,14 +1140,18 @@ $(document).ready(function(){
     disableDragging(clearButton);
     clearRoadsButton.addTo(map);
     disableDragging(clearRoadsButton);
+    
+    
     downloadButton.addTo(map);
     disableDragging(downloadButton);
+    /*
     downloadRoads.addTo(map);
     disableDragging(downloadRoads);
     downloadVor.addTo(map);
     disableDragging(downloadVor);
     downloadDraw.addTo(map);
     disableDragging(downloadDraw);
+    */
 
     covReadout.addTo(map);
     disableDragging(covReadout);
