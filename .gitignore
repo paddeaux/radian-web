@@ -214,3 +214,4 @@ geojson/
 notebooks/
 mockaroo.csv
 houses_lr.geojson
+.vscode
