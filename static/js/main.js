@@ -348,7 +348,7 @@ $(document).ready(function(){
         pointDiv.innerHTML = `
             <legend class="slide-legend">Number of Points</legend>
                 <div class='slidecontainer'>
-                    <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="5000" step="25" oninput="this.nextElementSibling.value = this.value;"/>
+                    <input type="range" class='slider inputs' value="250" id="random_points" name="random_points" min="0" max="500000" step="25" oninput="this.nextElementSibling.value = this.value;"/>
                     <output class='param-text'>250</output>
                 </div>`;
         return pointDiv;

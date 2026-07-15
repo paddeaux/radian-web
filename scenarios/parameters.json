@@ -68,9 +68,9 @@
         "context":"motion of cars parked in Berlin, carReg, entryTime, exitTime, roads took 27.79 seconds, region area 43.52438773466784 (drawn polygon button not working lol)"
     },
     "scenario6": {
-        "location": "Paris, France",
-        "points": 5000,
-        "distribution": ["gaussain (additive layering)"],
+        "location": "Contiguous United States, United States",
+        "points": 250000,
+        "distribution": ["gaussian"],
         "metadata": [
             {"name":"person's name"},
             {"integer": "(1,200)"},
