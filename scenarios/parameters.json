@@ -10,7 +10,7 @@
         "location": "Greater London, UK",
         "points": 2500,
         "distribution": "Gaussian",
-        "voronoi": 6,
+        "voronoi": 12,
         "ratio": "80:20",
         "covariance": [
             [0.005,     0],
@@ -28,10 +28,10 @@
         "points": 2500,
         "distribution": "Gaussian",
         "voronoi": 12,
-        "ratio": "30:70",
+        "ratio": "20:80",
         "covariance": [
-            [0.035, 0],
-            [0, 0.01]
+            [0.005, 0],
+            [0, 0.003]
         ],
         "metadata": [
             {"osm":"amenity=bar"},
