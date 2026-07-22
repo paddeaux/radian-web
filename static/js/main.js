@@ -32,7 +32,7 @@ $(document).ready(function(){
     var polyCovarYZ = 0;
     var polyCovarXZ = 0;
     var polyArea = 0;
-    var areaLimit = 50  // area limit for Roads distirbution in Km^2
+    var areaLimit = 100  // area limit for Roads distirbution in Km^2
 
     var search_term
     var metaDict = [];
