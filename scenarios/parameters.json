@@ -54,18 +54,18 @@
     },
     "scenario5": {
         "location": "(portion of) Berlin, Germany",
-        "points": 5000,
-        "distribution": ["uniform=1000", "gaussian=2000", "roads=2000"],
-        "voronoi":8,
+        "points": 800,
+        "distribution": ["uniform=200", "gaussian=400", "roads=400"],
+        "voronoi":6,
         "ratio":"50:50",
         "covariance":[[0.003, 0],[0, 0.001]],
-        "roadoffset": 8,
+        "roadoffset": 5,
         "metadata": [
             {"regex": "\\d{2,3}-[A-Z]{1,2}-\\d{1,4}"},
             {"timestamp": ["00:00:00 19/06/2026", "23:59:59 19/06/2026"]},
             {"timestamp": ["00:00:00 20/06/2026", "23:59:59 20/06/2026"]}
         ],
-        "context":"motion of cars parked in Berlin, carReg, entryTime, exitTime, roads took 27.79 seconds, region area 43.52438773466784 (drawn polygon button not working lol)"
+        "context":"street lamps in Berlin"
     },
     "scenario6": {
         "location": "Contiguous United States, United States",
