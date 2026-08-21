@@ -1,13 +1,11 @@
-# Radian-Web
+# RADIAN Web
 
 RADIAN [https://doi.org/10.1080/15230406.2024.2377981] is a Python-based tool for generating synthetic spatial datasets.
 
-RADIAN-Web [paper awaiting review] is a web-based tool which implements (and improves!) all the existing functionalities of RADIAN, as well as enhancing it's usability and efficiency. 
+RADIAN Web builds upon the existing framework introduced by RADIAN, by enhancing a number of core features, and most notably, switching the user experience from the command-line to a fully interactive, Leaflet-powered, web-based experience.
 
 ![Screentshot of Radian-Web](radianWeb.png)
 
-## What does RADIAN-Web do?
-RADIAN web expands upon the functionality of the original RADIAN by packaging it in a web-based format. The JavaScript/Leaflet UI allows for a much clearer picture of the generation process and resulting outputs. It addition it eschews the command line running of RADIAN with an intuitive UI which allows for quick generation (and regeneration) of the desired dataset.
 
 ### How to use RADIAN-Web?
 For personal use, running of the `server.py` file will allow the tool to be accessed through the web browser via `localhost:8080`.
@@ -18,5 +16,4 @@ For personal use, running of the `server.py` file will allow the tool to be acce
 
 
 ### How does RADIAN-Web differ from ordinary RADIAN?
-The obvious difference is of course that RADIAN-web operates within the users browser, without any need to install any software or dependencies on a local machine. 
-Given one of the primary use cases for RADIAN being in educational and classroom settings, RADIAN-web provides a great leap in usability of the software as now it can be distributed to students (or educators) simply by visiting the link via a browser.
+The obvious difference is of course that RADIAN-web operates within the users browser, without any need to install any software or dependencies on a local machine. Given one of the primary use cases for RADIAN being in educational and classroom settings, RADIAN-web provides a great leap in usability of the software as now it can be distributed to students (or educators) simply by visiting the link via a browser.
