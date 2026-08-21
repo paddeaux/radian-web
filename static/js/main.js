@@ -230,8 +230,21 @@ $(document).ready(function(){
                 polyArea = L.GeometryUtil.geodesicArea(polyGroup.getLayers()[0].getLayers()[0].getLatLngs()[0]);
                 console.log("polyBounds:\nXmin = ", polyBounds._southWest.lng, " Xmax = ", polyBounds._northEast.lng);
                 console.log("polyBounds:\nYmin = ", polyBounds._southWest.lat, " Ymax = ", polyBounds._northEast.lat);
-                polyVar_x = (polyBounds._northEast.lat - polyBounds._southWest.lat)/3;
-                polyVar_y = (polyBounds._northEast.lng - polyBounds._southWest.lng)/3;
+
+                polyNE = polyBounds._northEast
+                polySW = polyBounds._southWest
+                polyNE_proj = L.Projection.SphericalMercator.project(polyNE);
+                polySW_proj = L.Projection.SphericalMercator.project(polySW);
+
+                polyVar_x = (polyNE.lat - polySW.lat)/3;
+                polyVar_y = (polyNE.lng - polySW.lng)/3;
+
+                polyVar_x_proj = (polyNE_proj.x - polySW_proj.x)/3;
+                polyVar_y_proj = (polyNE_proj.y - polySW_proj.y)/3;
+
+                polyVar_x = polyVar_x_proj
+                polyVar_y = polyVar_y_proj
+
                 polyVar_x_org = polyVar_x
                 polyVar_y_org = polyVar_y
                 map.fitBounds(polyGroup.getBounds());
@@ -1063,12 +1076,12 @@ $(document).ready(function(){
                 <div class='slidecontainer slide-long'>
                     <table id='covariance-table_2d'>
                         <tr>
-                            <td>var(x)<input type="number" step=0.0001 id="var_x" value=${+polyVar_x}></td>
-                            <td>cov(yx)<input type="number" step=0.0001 id="covar_yx_a" value=${+polyCovarXY}></td>
+                            <td>var(x)<input type="number" step=10000 id="var_x" value=${+polyVar_x}></td>
+                            <td>cov(yx)<input type="number" step=10000 id="covar_yx_a" value=${+polyCovarXY}></td>
                         </tr>
                         <tr>
-                            <td>cov(yx)<input type="number" step=0.0001 id="covar_yx_b" value=${+polyCovarXY}></td>
-                            <td>var(y)<input type="number" step=0.0001 id="var_y" value=${+polyVar_y}></td>
+                            <td>cov(yx)<input type="number" step=10000 id="covar_yx_b" value=${+polyCovarXY}></td>
+                            <td>var(y)<input type="number" step=10000 id="var_y" value=${+polyVar_y}></td>
                         </tr>
                     </table>
                     <div><input id='covar_reset' type='button' value='Reset to default'></div>
@@ -1076,43 +1089,17 @@ $(document).ready(function(){
         return html;
     }
 
-    function getCovTable3D() {
-        html = `<legend class="slide-legend">Covariance Matrix</legend>
-                <div class='slidecontainer slide-long'>
-                    <table id='covariance-table_3d'>
-                        <tr>
-                            <td>var(y)<input type="text" id="var_y" value=${+polyVar_y}></td>
-                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
-                            <td>cov(xz)<input type="text" id="covar_xz" value=${+polyCovarXZ}></td>
-                        </tr>
-                        <tr>
-                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXY}></td>
-                            <td>var(x)<input type="text" id="var_x" value=${+polyVar_x}></td>
-                            <td>cov(yz)<input type="text" id="covar_yz" value=${+polyCovarYZ}></td>
-                        </tr>
-                        <tr>
-                            <td>cov(yx)<input type="text" id="covar_yx" value=${+polyCovarXZ}></td>
-                            <td>cov(yz)<input type="text" id="covar_yz" value=${+polyCovarYZ}></td>
-                            <td>var(x)<input type="text" id="var_z" value=${+polyVar_z}></td>
-                        </tr>
-                    </table>
-                    <div><input id='covar_reset_3d' type='button' value='Reset to default'></div>
-                </div>`;
-        return html;
-    }
-
-
 
     function setCov2D() {
         console.log("resetting covariance matrix")
-        document.getElementById('var_y').value = (polyVar_y_org**2).toFixed(6);
-        document.getElementById('var_x').value = (polyVar_x_org**2).toFixed(6);
-        document.getElementById('covar_yx_a').value = parseFloat(polyCovarXY).toFixed(6);
-        document.getElementById('covar_yx_b').value = parseFloat(polyCovarXY).toFixed(6);
+        document.getElementById('var_y').value = (polyVar_y_org**2).toFixed(0);
+        document.getElementById('var_x').value = (polyVar_x_org**2).toFixed(0);
+        document.getElementById('covar_yx_a').value = parseFloat(polyCovarXY).toFixed(0);
+        document.getElementById('covar_yx_b').value = parseFloat(polyCovarXY).toFixed(0);
 
         polyCoVar = [
-            [polyVar_x_org, polyCovarXY],
-            [polyCovarXY, polyVar_y_org]
+            [polyVar_x_org**2, polyCovarXY],
+            [polyCovarXY, polyVar_y_org**2]
         ]
     };
 

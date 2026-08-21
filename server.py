@@ -60,7 +60,7 @@ def process():
     print("generating primary points")
     # primary generation
     if gen_type == 1:
-        points_gdf = gaussian_moving_centre(gdf, primary, centroid, 4326, covar, layer)
+        points_gdf = gaussian_moving_centre(gdf, primary, centroid, 3857, covar, layer)
     else:
         points_gdf = points_uniform(gdf, primary, 4326, layer)
 

@@ -107,21 +107,28 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None, laye
     @type num_points: integer
     @param num_points: Number of uniform points to be generated within each geometry
     """
-    points_out = gpd.GeoDataFrame(geometry=[], crs=epsg)
-    i_max = 200
+    poly = poly.set_crs(4326)
+    poly = poly.to_crs(3857)
+    centre = gpd.GeoSeries([centre], crs=4326).to_crs(3857)[0]
+    points_out = gpd.GeoDataFrame(geometry=[], crs=3857)
+    i_max = 1
     i = 0
     for geom in poly.geometry:
         points_found = False
         #min_x, min_y, max_x, max_y = geom.bounds
         cx, cy = centre.x, centre.y
+        print("centre_x", cx, "centre_y", cy)
+        print("covariance matrix:", covar)
         #sd_x = (max_y - min_y)/3
         #sd_y = (max_x - min_x)/3
         #cov = np.array([[sd_y**2, 0], [0, sd_x**2]])
         while not points_found:
             if i >= i_max:
-                return gpd.GeoDataFrame(geometry=[], crs=epsg)
+                return gpd.GeoDataFrame(geometry=[], crs=3857)
             pts = pd.DataFrame(np.random.multivariate_normal((cx, cy), covar, size=int(round(num_points*4))), columns=['x','y'])
             geo_pts = gpd.GeoDataFrame(geometry=gpd.points_from_xy(pts['x'], pts['y'], crs=epsg))
+
+            print(geo_pts)
             geo_pts = geo_pts.sjoin(gpd.GeoDataFrame(geometry=gpd.GeoSeries([geom]), crs=epsg), predicate='within')
             if num_points < len(geo_pts):
                 geo_pts = geo_pts.sample(num_points)
@@ -133,7 +140,8 @@ def gaussian_moving_centre(poly, num_points, centre, epsg=4326, covar=None, laye
                 
         points_out = pd.concat([points_out, geo_pts], ignore_index=True)
         points_out['layer'] = [layer for x in range(len(points_out.index))]
-    return points_out
+
+    return points_out.to_crs(4326)
 
 def road_distribution(roads, total_pts=100, road_offset=5, weighted=False, epsg=3857, layer=0):
     points = []
