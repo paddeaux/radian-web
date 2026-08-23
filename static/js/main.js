@@ -1071,10 +1071,10 @@ $(document).ready(function(){
         return covReadDiv;
     }
 
-    function getCovTable2D() {
+    function getCovTable2D_old() {
         var html = `<legend class="slide-legend">Covariance Matrix</legend>
                 <div class='slidecontainer slide-long'>
-                    <table id='covariance-table_2d'>
+                    <table class='metadata-table' id='covariance-table_2d'>
                         <tr>
                             <td>var(x)<input type="number" min=0 max = 100 step=5 id="var_x" value=100></td>
                             <td>cov(yx)<input type="number" min=0 max = 100 step=5 id="covar_yx_a" value=${+polyCovarXY}></td>
@@ -1089,13 +1089,27 @@ $(document).ready(function(){
         return html;
     }
 
+        function getCovTable2D() {
+        var html = `<legend class="slide-legend">Gaussian Parameters</legend>
+                <div class='slidecontainer'>
+                    <table class='metadata-table id='covariance-table_2d'>
+                        <tr>
+                            <td>sd(x)<input type="number" size=10 step=0.5 id="var_x" class='cov-input' value=${+polyVar_x/1000}>km</td>
+                            <td>sd(y)<input type="number" size=10 step=0.5 id="var_y" class='cov-input' value=${+polyVar_y/1000}>km</td>
+                        <tr>
+                    </table>
+                    <div><input id='covar_reset' type='button' value='Reset to default'></div>
+                </div>`;
+        return html;
+    }
+
 
     function setCov2D() {
         console.log("resetting covariance matrix")
-        document.getElementById('var_y').value = 100//(polyVar_y_org**2).toFixed(0);
-        document.getElementById('var_x').value = 100//(polyVar_x_org**2).toFixed(0);
-        document.getElementById('covar_yx_a').value = 100//parseFloat(polyCovarXY).toFixed(0);
-        document.getElementById('covar_yx_b').value = 100//parseFloat(polyCovarXY).toFixed(0);
+        document.getElementById('var_y').value = (polyVar_y_org/1000).toFixed(2);
+        document.getElementById('var_x').value = (polyVar_x_org/1000).toFixed(2);
+        //document.getElementById('covar_yx_a').value = 100//parseFloat(polyCovarXY).toFixed(0);
+        //document.getElementById('covar_yx_b').value = 100//parseFloat(polyCovarXY).toFixed(0);
 
         polyCoVar = [
             [polyVar_x_org**2, polyCovarXY],
@@ -1104,9 +1118,9 @@ $(document).ready(function(){
     };
 
     function getCov2D() {
-        polyVar_y = (document.getElementById('var_y').value/100) * polyVar_x_org**2;
-        polyVar_x = (document.getElementById('var_x').value/100) * polyVar_y_org**2;
-        polyCovarXY = (document.getElementById('covar_yx_a').value/100) * polyCovarXY;
+        polyVar_y = (document.getElementById('var_y').value*1000)**2// polyVar_x_org**2;
+        polyVar_x = (document.getElementById('var_x').value*1000)**2// polyVar_y_org**2;
+        //polyCovarXY = (document.getElementById('covar_yx_a').value/100) * polyCovarXY;
         polyCoVar = [
             [polyVar_x, polyCovarXY],
             [polyCovarXY, polyVar_y]

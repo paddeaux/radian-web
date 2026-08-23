@@ -219,6 +219,10 @@ p {
     font-size: 12px;
 }
 
+.cov-input {
+    width: 50px;
+}
+
 .seed {
     transform: translate(440%, -640%);
     font-size: 16px;
@@ -252,6 +256,12 @@ p {
 }
 
 .metadata-table {
+    border-collapse: separate;
+    border-spacing: 10px;
+}
+
+.cov-table{
+    width: 250px;
     border-collapse: separate;
     border-spacing: 10px;
 }
