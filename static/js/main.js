@@ -1146,12 +1146,12 @@ $(document).ready(function(){
     downloadButton.addTo(map);
     disableDragging(downloadButton);
     
-    downloadRoads.addTo(map);
-    disableDragging(downloadRoads);
-    downloadVor.addTo(map);
-    disableDragging(downloadVor);
-    downloadDraw.addTo(map);
-    disableDragging(downloadDraw);
+    //downloadRoads.addTo(map);
+    //disableDragging(downloadRoads);
+    //downloadVor.addTo(map);
+    //disableDragging(downloadVor);
+    //downloadDraw.addTo(map);
+    //disableDragging(downloadDraw);
     
 
     covReadout.addTo(map);
