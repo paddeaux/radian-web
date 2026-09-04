@@ -21,11 +21,11 @@ $(document).ready(function(){
     var additivePoints = false;
 
     // gaussian covariance
-    var polyVar_x;
-    var polyVar_x_org;
-    var polyVar_y;
-    var polyVar_y_org;
-    var polyVar_z;
+    var polyVar_x = 0;
+    var polyVar_x_org = 0;
+    var polyVar_y = 0;
+    var polyVar_y_org = 0;
+    var polyVar_z = 0;
 
     var polyCoVar;
     var polyCovarXY = 0;
@@ -1064,32 +1064,10 @@ $(document).ready(function(){
         return metaReadDiv;
     }
 
-    const covReadout = L.control({ position: 'bottomright'});
-    covReadout.onAdd = () => {
-        const covReadDiv = L.DomUtil.create('div', 'covariance-wrapper');
-        covReadDiv.innerHTML = getCovTable2D();
-        return covReadDiv;
-    }
 
-    function getCovTable2D_old() {
-        var html = `<legend class="slide-legend">Covariance Matrix</legend>
-                <div class='slidecontainer slide-long'>
-                    <table class='metadata-table' id='covariance-table_2d'>
-                        <tr>
-                            <td>var(x)<input type="number" min=0 max = 100 step=5 id="var_x" value=100></td>
-                            <td>cov(yx)<input type="number" min=0 max = 100 step=5 id="covar_yx_a" value=${+polyCovarXY}></td>
-                        </tr>
-                        <tr>
-                            <td>cov(yx)<input type="number" min=0 max=100 step=5 id="covar_yx_b" value=${+polyCovarXY}></td>
-                            <td>var(y)<input type="number" min=0 max=100 step=5 id="var_y" value=100></td>
-                        </tr>
-                    </table>
-                    <div><input id='covar_reset' type='button' value='Reset to default'></div>
-                </div>`;
-        return html;
-    }
 
-        function getCovTable2D() {
+
+    function getCovTable2D() {
         var html = `<legend class="slide-legend">Gaussian Parameters</legend>
                 <div class='slidecontainer'>
                     <table class='metadata-table id='covariance-table_2d'>
@@ -1100,7 +1078,15 @@ $(document).ready(function(){
                     </table>
                     <div><input id='covar_reset' type='button' value='Reset to default'></div>
                 </div>`;
+        console.log("creted covariance-table_2d")
         return html;
+    }
+
+    const covReadout = L.control({ position: 'bottomright'});
+    covReadout.onAdd = () => {
+        const covReadDiv = L.DomUtil.create('div', 'covariance-wrapper');
+        covReadDiv.innerHTML = getCovTable2D();
+        return covReadDiv;
     }
 
 
@@ -1176,14 +1162,13 @@ $(document).ready(function(){
     var varNumber = 0
     // sample listing for metadata attributes
 
+    getCov2D();
 
 
-    document.getElementById('covariance-table_2d').addEventListener('change', function (e) {
-        console.log("values changed");
-        getCov2D();
-    });
+    console.log("we want to be here")
 
     document.getElementById('var_button_add').addEventListener('click', function (e) {
+        console.log("huh huh huh")
         varNumber++;
         var table = document.getElementsByClassName('metadata-table')[0]
         var row = table.insertRow(varNumber);
